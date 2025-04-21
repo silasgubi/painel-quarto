@@ -1,4 +1,5 @@
 # bandeira.py
+
 import requests
 
 def fetch_bandeira():
