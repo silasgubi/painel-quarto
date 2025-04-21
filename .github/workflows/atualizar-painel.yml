@@ -1,34 +1,44 @@
+```yaml
 name: Atualizar Painel REST do Quarto
+
+# Permissões necessárias para que o GITHUB_TOKEN possa dar push
+permissions:
+  contents: write
 
 on:
   schedule:
-    - cron: '0 * * * *'  # a cada hora
+    - cron: '0 * * * *'  # dispara a cada hora
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-    - uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-    - name: Configurar Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.11'
+      - name: Configurar Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
 
-    - name: Instalar dependências
-      run: pip install requests speedtest-cli holidays
+      - name: Instalar dependências
+        run: |
+          pip install requests speedtest-cli holidays google-api-python-client google-auth
 
-    - name: Rodar script e gerar painel
-      env:
-        HA_URL: ${{ secrets.HA_URL }}
-        HA_TOKEN: ${{ secrets.HA_TOKEN }}
-      run: python get_painel_quarto.py
+      - name: Rodar script e gerar painel
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+          CALENDAR_ID: ${{ secrets.CALENDAR_ID }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+        run: python get_painel_quarto.py
 
-    - name: Commit e Push
-      run: |
-        git config user.name "github-actions"
-        git config user.email "actions@github.com"
-        git add index.html
-        git commit -m "Atualização automática do painel"
-        git push
+      - name: Commit e Push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add index.html
+          git commit -m "Atualização automática do painel"
+          git push
+```
