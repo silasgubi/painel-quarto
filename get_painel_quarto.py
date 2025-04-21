@@ -4,28 +4,28 @@ import requests
 import speedtest
 from datetime import datetime
 import holidays
-from bandeira import fetch_bandeira   # importe seu módulo bandeira.py
+from bandeira import fetch_bandeira   # importe o bandeira.py
 
-# ─── 1) BOTÕES: já configurados a partir da sua planilha ───────────────
+# ─── 1) BOTÕES: rótulo e entity_id conforme sua planilha ───────────────
 BUTTONS_LIGHTS = [
-    ("Quarto", "switch.sonoff_1000e52367"),
-    ("Abajur 1", "switch.sonoff_1000da054f"),
-    ("Abajur 2", "switch.sonoff_1001e1e063"),
-    ("Cama",       "switch.sonoff_1001e49ef2_1"),
+    ("Quarto", "switch.sonoff_1001a6434"),
+    ("Abajur 1", "switch.sonoff_1001e1e063"),
+    ("Abajur 2", "switch.sonoff_1001e18c26"),
+    ("Cama", "switch.sonoff_1001e49ef2_1"),
     ("Banheiro Suite", "switch.sonoff_1000e54832"),
 ]
 
 BUTTONS_DEVICES = [
     ("Ar‑condicionado", "switch.sonoff_1000e4e667"),
-    ("Projetor",         "switch.sonoff_100118eb9b_1"),
-    ("iPad",             "switch.sonoff_1001e49ef2_2"),
+    ("Projetor", "switch.sonoff_100118eb9b_1"),
+    ("iPad", "switch.sonoff_1001e49ef2_2"),
 ]
 
 BUTTONS_SCENES = [
-    ("Vermelhas",     "scene.vermelhas"),
-    ("Grafite",       "scene.grafite"),
-    ("Aconchegante",  "scene.aconchegante"),
-    ("Banheiro",      "scene.banheiro"),
+    ("Vermelhas", "scene.vermelha"),
+    ("Grafite",   "scene.grafite"),
+    ("Aconchegante", "scene.aconchegante"),
+    ("Banheiro",  "scene.banheiro"),
 ]
 
 # ─── 2) Google Calendar (opcional) ─────────────────────────────────────
@@ -46,7 +46,7 @@ if HAS_GOOGLE and CALENDAR_ID:
     creds = Credentials.from_service_account_file("service_account.json", scopes=SCOPES)
     service = build("calendar", "v3", credentials=creds)
 
-# ─── 3) Datas e horas ────────────────────────────────────────────────────
+# ─── 3) Data e hora ──────────────────────────────────────────────────────
 now = datetime.now()
 data_hoje = now.strftime("%d/%m/%Y")
 hora_hoje = now.strftime("%H:%M")
@@ -64,7 +64,7 @@ else:
     else:
         feriado_text = "Não há mais feriados este ano"
 
-# ─── 5) Clima do quarto via REST do HA ─────────────────────────────────
+# ─── 5) Clima do quarto via REST HA ─────────────────────────────────────
 HA_URL   = os.environ.get("HA_URL", "")
 HA_TOKEN = os.environ.get("HA_TOKEN", "")
 
@@ -114,8 +114,8 @@ def get_speed():
     try:
         st = speedtest.Speedtest()
         st.get_best_server()
-        down = int(st.download()/1_000_000)
-        up   = int(st.upload()/1_000_000)
+        down = int(st.download() / 1_000_000)
+        up   = int(st.upload()   / 1_000_000)
         return f"Velocidade: {down} ↓ / {up} ↑"
     except:
         return "Velocidade: Offline"
@@ -142,23 +142,42 @@ def get_bandeira():
     except:
         return "Bandeira: —"
 
-# ─── 10) Monta o HTML final com boot, botões e blocos ──────────────────
-html = """<!DOCTYPE html>
+# ─── 10) Tempo Atual e Previsão (via wttr.in) ──────────────────────────
+def get_tempo_atual():
+    try:
+        return requests.get(
+            "https://wttr.in/Sao+Paulo?format=São+Paulo:+%c+%C+%t+%h&lang=pt",
+            timeout=10
+        ).text
+    except:
+        return "Tempo indisponível"
+
+def get_previsao():
+    try:
+        return requests.get(
+            "https://wttr.in/Sao+Paulo?format=Previsão:+%c+Min+%m+Max+%M+Chuva+%p&lang=pt",
+            timeout=10
+        ).text
+    except:
+        return "Previsão indisponível"
+
+# ─── 11) Monta o HTML com boot, botões e todos os blocos ──────────────
+html = f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Painel Quarto — %s %s</title>
+  <title>Painel Quarto — {data_hoje} {hora_hoje}</title>
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <style>
-    body { margin:0; background:#000; color:#0F0; font-family:'VT323',monospace; }
-    .outer { border:2px solid #0A0; max-width:800px; margin:10px auto; padding:10px; display:none; }
-    .section { border:1px solid #0A0; padding:10px; margin-top:10px; }
-    .section h3 { margin:0 0 5px; border-bottom:1px dashed #0A0; text-transform:uppercase; }
-    button {
+    body {{ margin:0; background:#000; color:#0F0; font-family:'VT323',monospace; }}
+    .outer {{ border:2px solid #0A0; max-width:800px; margin:10px auto; padding:10px; display:none; }}
+    .section {{ border:1px solid #0A0; padding:10px; margin-top:10px; }}
+    .section h3 {{ margin:0 0 5px; border-bottom:1px dashed #0A0; text-transform:uppercase; }}
+    button {{
       display:inline-block; margin:5px; padding:8px 12px;
       background:#000; color:#0F0; border:1px solid #0A0;
       font-family:'VT323',monospace; cursor:pointer;
-    }
+    }}
   </style>
 </head>
 <body>
@@ -172,31 +191,32 @@ html = """<!DOCTYPE html>
 
   <div class="outer">
     <div class="section"><h3>Luzes</h3>
-      %s
+      {"".join(f'<button onclick="toggleEntity(\\'{eid}\\')">{label}</button>' for label,eid in BUTTONS_LIGHTS)}
     </div>
     <div class="section"><h3>Dispositivos</h3>
-      %s
+      {"".join(f'<button onclick="toggleEntity(\\'{eid}\\')">{label}</button>' for label,eid in BUTTONS_DEVICES)}
     </div>
     <div class="section"><h3>Cenas</h3>
-      %s
+      {"".join(f'<button onclick="toggleEntity(\\'{eid}\\')">{label}</button>' for label,eid in BUTTONS_SCENES)}
     </div>
     <div class="section"><h3>Agenda</h3>
-      <p>%s %s</p>
-      <p>%s</p>
+      <p>{data_hoje} {hora_hoje}</p>
+      <p>{feriado_text}</p>
+      <p>{get_agenda()}</p>
     </div>
     <div class="section"><h3>Tempo</h3>
-      <p>%s</p>
-      <p>%s</p>
+      <p>{get_tempo_atual()}</p>
+      <p>{get_previsao()}</p>
     </div>
     <div class="section"><h3>Sistema</h3>
-      <p>%s</p>
-      <p>%s</p>
-      <p>%s</p>
+      <p>{get_clima_quarto()}</p>
+      <p>{get_speed()}</p>
+      <p>{get_filtro()}</p>
+      <p>{get_bandeira()}</p>
     </div>
   </div>
 
   <script>
-    // linhas de boot (igual ao boot.txt)
     const bootLines = [
       "Phoenix Technologies Ltd.  Version 4.06",
       "Copyright (C) 1985-2001, Phoenix Technologies Ltd.",
@@ -217,12 +237,12 @@ html = """<!DOCTYPE html>
       "Loading DOS...",
       "Starting Smart Panel Interface..."
     ];
-    let lineIndex = 0;
-    function showNextLine() {
+    let idx = 0;
+    function showNext() {
       const el = document.getElementById('bootScreen');
-      if (lineIndex < bootLines.length) {
-        el.innerText += bootLines[lineIndex++] + "\\n";
-        setTimeout(showNextLine, 300);
+      if (idx < bootLines.length) {
+        el.innerText += bootLines[idx++] + "\\n";
+        setTimeout(showNext, 300);
       } else {
         setTimeout(() => {
           el.style.display = "none";
@@ -233,10 +253,10 @@ html = """<!DOCTYPE html>
 
     function toggleEntity(entity_id) {
       new Audio('assets/sons/on.mp3').play();
-      fetch('%s/api/services/homeassistant/toggle', {
+      fetch(`${HA_URL}/api/services/homeassistant/toggle`, {
         method: 'POST',
         headers: {
-          'Authorization': 'Bearer %s',
+          'Authorization': `Bearer ${HA_TOKEN}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({ entity_id })
@@ -245,30 +265,14 @@ html = """<!DOCTYPE html>
 
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('bootSound').play();
-      showNextLine();
+      showNext();
     });
   </script>
 </body>
 </html>
-""" % (
-    # título
-    data_hoje, hora_hoje,
-    # botões
-    "".join(f'<button onclick="toggleEntity(\'{eid}\')">{label}</button>' for label, eid in BUTTONS_LIGHTS),
-    "".join(f'<button onclick="toggleEntity(\'{eid}\')">{label}</button>' for label, eid in BUTTONS_DEVICES),
-    "".join(f'<button onclick="toggleEntity(\'{eid}\')">{label}</button>' for label, eid in BUTTONS_SCENES),
-    # agenda
-    data_hoje, hora_hoje, get_agenda(),
-    # tempo
-    # Aqui, crie as funções get_tempo_atual() e get_previsao() conforme mensagem anterior
-    get_tempo_atual(), get_previsao(),
-    # sistema
-    get_clima_quarto(), get_speed(), get_filtro(),
-    # toggle REST
-    HA_URL, HA_TOKEN
-)
+"""
 
-# ─── 11) Salva em docs/index.html para o GitHub Pages ────────────────
+# salva em docs/index.html para o GitHub Pages
 os.makedirs("docs", exist_ok=True)
 with open("docs/index.html", "w", encoding="utf-8") as f:
     f.write(html)
