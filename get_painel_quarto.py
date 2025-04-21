@@ -6,22 +6,26 @@ from datetime import datetime
 import holidays
 from bandeira import fetch_bandeira  # seu módulo bandeira.py
 
-# ─── 1) BOTÕES: substitua pelos seus labels e entity_ids ──────────────────
+# ─── 1) BOTÕES: pré‑configurado a partir da sua planilha ────────────────
 BUTTONS_LIGHTS = [
-    ("Luz da cama", "switch.sonoff_1000e52367"),
-    ("Luz da mesa", "switch.sonoff_1000c43d82"),
-    # ...
-]
-BUTTONS_DEVICES = [
-    ("Ventilador", "switch.sonoff_1000e5465f"),
-    # ...
-]
-BUTTONS_SCENES = [
-    ("Cena Filme", "scene.filme_noite"),
-    # ...
+    ("Quarto"       , "light.sonoff_a4400262ed"),
+    ("Abajur 1"     , "switch.sonoff_1000da054f"),
+    ("Abajur 2"     , "switch.sonoff_1001e1e063"),
+    ("Cama"         , "switch.sonoff_1000e52367"),
+    ("Banheiro Suíte", "switch.sonoff_1000e54832"),
 ]
 
-# ─── 2) Google Calendar (opcional) ───────────────────────────────────────
+BUTTONS_DEVICES = [
+    ("Ar-condicionado", "climate.quarto"),
+    ("Projetor"       , "switch.sonoff_100118eb9b_1"),
+    ("iPad"           , "switch.sonoff_1001e49ef2_1"),
+]
+
+BUTTONS_SCENES = [
+    # não havia cenas marcadas como "Sim" na planilha
+]
+
+# ─── 2) Google Calendar (opcional) ─────────────────────────────────────
 HAS_GOOGLE = False
 try:
     from google.oauth2.service_account import Credentials
@@ -64,7 +68,7 @@ def get_clima():
     try:
         resp = requests.get(
             f"{HA_URL}/api/states/climate.quarto",
-            headers={"Authorization":f"Bearer {HA_TOKEN}","Content-Type":"application/json"}
+            headers={"Authorization":f"Bearer {HA_TOKEN}"}
         ).json()
         temp = resp.get("state", "—")
         hum  = resp.get("attributes", {}).get("current_humidity", "—")
@@ -111,7 +115,7 @@ def get_filtro():
     try:
         resp = requests.get(
             f"{HA_URL}/api/states/binary_sensor.quarto_filter_clean_required",
-            headers={"Authorization":f"Bearer {HA_TOKEN}","Content-Type":"application/json"}
+            headers={"Authorization":f"Bearer {HA_TOKEN}"}
         ).json()
         return "Limpeza: 🚩" if resp.get("state") == "on" else "Limpeza: OK"
     except:
@@ -125,22 +129,27 @@ def get_bandeira():
         return "Bandeira: —"
 
 # ─── 10) Monta o HTML final ─────────────────────────────────────────────
-html = """<!DOCTYPE html>
+buttons_html = lambda items: "".join(
+    '<button onclick="toggleEntity(\'%s\')">%s</button>' % (eid, label)
+    for label, eid in items
+)
+
+html = f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Painel Quarto — %s %s</title>
+  <title>Painel Quarto — {data_hoje} {hora_hoje}</title>
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <style>
-    body { margin:0; background:#000; color:#0F0; font-family:'VT323',monospace; }
-    .outer { border:2px solid #0A0; max-width:800px; margin:10px auto; padding:10px; display:none; }
-    .section { border:1px solid #0A0; padding:10px; margin-top:10px; }
-    .section h3 { margin:0 0 5px; border-bottom:1px dashed #0A0; text-transform:uppercase; }
-    button {
+    body {{ margin:0; background:#000; color:#0F0; font-family:'VT323',monospace; }}
+    .outer {{ border:2px solid #0A0; max-width:800px; margin:10px auto; padding:10px; display:none; }}
+    .section {{ border:1px solid #0A0; padding:10px; margin-top:10px; }}
+    .section h3 {{ margin:0 0 5px; border-bottom:1px dashed #0A0; text-transform:uppercase; }}
+    button {{
       display:inline-block; margin:5px; padding:8px 12px;
       background:#000; color:#0F0; border:1px solid #0A0;
       font-family:'VT323',monospace; cursor:pointer;
-    }
+    }}
   </style>
 </head>
 <body>
@@ -152,27 +161,20 @@ html = """<!DOCTYPE html>
   "></div>
 
   <div class="outer">
-    <div class="section"><h3>Luzes</h3>
-      %s
-    </div>
-    <div class="section"><h3>Dispositivos</h3>
-      %s
-    </div>
-    <div class="section"><h3>Cenas</h3>
-      %s
-    </div>
+    <div class="section"><h3>Luzes</h3>{buttons_html(BUTTONS_LIGHTS)}</div>
+    <div class="section"><h3>Dispositivos</h3>{buttons_html(BUTTONS_DEVICES)}</div>
+    <div class="section"><h3>Cenas</h3>{buttons_html(BUTTONS_SCENES)}</div>
     <div class="section"><h3>Sistema</h3>
-      <p>%s</p>
-      <p>%s</p>
-      <p>%s</p>
-      <p>%s</p>
-      <p>%s</p>
-      <p>%s</p>
+      <p>{get_clima()}</p>
+      <p>{get_agenda()}</p>
+      <p>{get_speed()}</p>
+      <p>{feriado_text}</p>
+      <p>{get_filtro()}</p>
+      <p>{get_bandeira()}</p>
     </div>
   </div>
 
   <script>
-    // boot.txt integrado aqui...
     const bootLines = [
       "Phoenix Technologies Ltd.  Version 4.06",
       "Copyright (C) 1985-2001, Phoenix Technologies Ltd.",
@@ -193,65 +195,40 @@ html = """<!DOCTYPE html>
       "Loading DOS...",
       "Starting Smart Panel Interface..."
     ];
-    let lineIndex = 0;
-    function showNextLine() {
+    let idx = 0;
+    function showNextLine() {{
       const el = document.getElementById('bootScreen');
-      if (lineIndex < bootLines.length) {
-        el.innerText += bootLines[lineIndex++] + "\\n";
+      if (idx < bootLines.length) {{
+        el.innerText += bootLines[idx++] + "\\n";
         setTimeout(showNextLine, 300);
-      } else {
-        setTimeout(() => {
+      }} else {{
+        setTimeout(() => {{
           el.style.display = "none";
           document.querySelector('.outer').style.display = "block";
-        }, 1000);
-      }
-    }
+        }}, 1000);
+      }}
+    }}
 
-    function toggleEntity(entity_id) {
+    function toggleEntity(entity_id) {{
       new Audio('assets/sons/on.mp3').play();
-      fetch('%s/api/services/homeassistant/toggle', {
+      fetch('{HA_URL}/api/services/homeassistant/toggle', {{
         method: 'POST',
-        headers: {
-          'Authorization': 'Bearer %s',
+        headers: {{
+          'Authorization': 'Bearer {HA_TOKEN}',
           'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ entity_id })
-      });
-    }
+        }},
+        body: JSON.stringify({{ entity_id }})
+      }});
+    }}
 
-    document.addEventListener('DOMContentLoaded', () => {
+    document.addEventListener('DOMContentLoaded', () => {{
       document.getElementById('bootSound').play();
       showNextLine();
-    });
+    }});
   </script>
 </body>
 </html>
-""" % (
-    # título
-    data_hoje, hora_hoje,
-    # botões
-    "".join(
-        '<button onclick="toggleEntity(\'%s\')">%s</button>' % (eid, label)
-        for label, eid in BUTTONS_LIGHTS
-    ),
-    "".join(
-        '<button onclick="toggleEntity(\'%s\')">%s</button>' % (eid, label)
-        for label, eid in BUTTONS_DEVICES
-    ),
-    "".join(
-        '<button onclick="toggleEntity(\'%s\')">%s</button>' % (eid, label)
-        for label, eid in BUTTONS_SCENES
-    ),
-    # sistema
-    get_clima(),
-    get_agenda(),
-    get_speed(),
-    feriado_text,
-    get_filtro(),
-    get_bandeira(),
-    # REST toggle
-    HA_URL, HA_TOKEN
-)
+"""
 
 # ─── 11) Salva em docs/index.html para o GitHub Pages ────────────────────
 os.makedirs("docs", exist_ok=True)
