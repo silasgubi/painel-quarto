@@ -1,4 +1,3 @@
-```yaml
 name: Atualizar Painel REST do Quarto
 
 # Permissões necessárias para que o GITHUB_TOKEN possa dar push
