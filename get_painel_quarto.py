@@ -108,7 +108,7 @@ except:
     filtro_text = 'Limpeza: —'
 
 # Bandeira tarifária (via CKAN ANEEL)
-from bandeira import fetch_bandeira  # import do seu module Bandeira.txt convertido
+from bandeira import fetch_bandeira
 try:
     bandeira_text = f'Bandeira: {fetch_bandeira()}'
 except:
