@@ -4,7 +4,12 @@ import speedtest
 from datetime import datetime
 import holidays
 
-# 1. Informações do HA (REST)
+# == CONFIGURAÇÃO DE VARIÁVEIS DE AMBIENTE ==
+# Exportar no GitHub Actions ou na máquina:
+# HA_URL: URL do Home Assistant (ex: http://homeassistant.local:8123)
+# HA_TOKEN: Token de Long-Lived para acesso à API
+# CALENDAR_ID: ID do Google Calendar (opcional)
+# GOOGLE_CREDENTIALS: JSON da conta de serviço do Google (opcional)
 HA_URL = os.environ.get("HA_URL", "")
 HA_TOKEN = os.environ.get("HA_TOKEN", "")
 HEADERS = {
@@ -12,20 +17,19 @@ HEADERS = {
     "Content-Type": "application/json",
 }
 
-# 2. Google Calendar
+# == GOOGLE CALENDAR ==
 try:
     from google.oauth2.service_account import Credentials
     from googleapiclient.discovery import build
-
     HAS_GOOGLE = True
 except ImportError:
     HAS_GOOGLE = False
 
-calendar_id = os.environ.get("CALENDAR_ID", "")
-if HAS_GOOGLE and calendar_id:
+CALENDAR_ID = os.environ.get("CALENDAR_ID", "")
+if HAS_GOOGLE and CALENDAR_ID:
     try:
         SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
-        credentials_json = os.environ["GOOGLE_CREDENTIALS"]
+        credentials_json = os.environ.get("GOOGLE_CREDENTIALS", "")
         with open("service_account.json", "w", encoding="utf-8") as f:
             f.write(credentials_json)
         creds = Credentials.from_service_account_file(
@@ -35,7 +39,7 @@ if HAS_GOOGLE and calendar_id:
     except Exception:
         HAS_GOOGLE = False
 
-# 3. Data e feriado
+# == DATA E FERIADOS ==
 now = datetime.now()
 data_hoje = now.strftime("%d/%m/%Y")
 hora_hoje = now.strftime("%H:%M")
@@ -53,7 +57,7 @@ else:
     else:
         feriado_text = "Não há mais feriados este ano"
 
-# 4. Clima
+# == CLIMA EXTERNO ==
 try:
     clima = requests.get(
         "https://wttr.in/Sao+Paulo?format=São+Paulo:+%c+%C+%t&lang=pt&m"
@@ -61,23 +65,18 @@ try:
 except:
     clima = "Clima indisponível"
 
-# 5. Agenda
-if HAS_GOOGLE and calendar_id:
+# == AGENDA DO DIA ==
+if HAS_GOOGLE and CALENDAR_ID:
     try:
         time_min = now.isoformat() + "Z"
         time_max = datetime(now.year, now.month, now.day, 23, 59, 59).isoformat() + "Z"
-        events = (
-            service.events()
-            .list(
-                calendarId=calendar_id,
-                timeMin=time_min,
-                timeMax=time_max,
-                singleEvents=True,
-                orderBy="startTime",
-            )
-            .execute()
-            .get("items", [])
-        )
+        events = service.events().list(
+            calendarId=CALENDAR_ID,
+            timeMin=time_min,
+            timeMax=time_max,
+            singleEvents=True,
+            orderBy="startTime",
+        ).execute().get("items", [])
         if not events:
             agenda_text = "Compromissos: Nenhum"
         else:
@@ -92,7 +91,7 @@ if HAS_GOOGLE and calendar_id:
 else:
     agenda_text = "Agenda indisponível"
 
-# 6. Velocidade Internet
+# == VELOCIDADE DE INTERNET ==
 try:
     st = speedtest.Speedtest()
     st.get_best_server()
@@ -102,7 +101,7 @@ try:
 except:
     internet_text = "Velocidade: Offline"
 
-# 7. Sensor Filtro Ar-condicionado
+# == SENSOR FILTRO AR ==
 try:
     r = requests.get(
         f"{HA_URL}/api/states/binary_sensor.quarto_filter_clean_required",
@@ -116,10 +115,12 @@ try:
 except:
     filtro_text = "Filtro: Indisponível"
 
-# 8. Bandeira Tarifária
+# == BANDEIRA TARIFÁRIA ==
 try:
     r = requests.get(
-        f"{HA_URL}/api/states/sensor.bandeira_tarifaria", headers=HEADERS, timeout=10
+        f"{HA_URL}/api/states/sensor.bandeira_tarifaria",
+        headers=HEADERS,
+        timeout=10,
     )
     if r.status_code == 200:
         bandeira = r.json().get("state", "desconhecida")
@@ -129,9 +130,11 @@ try:
 except:
     bandeira_text = "Bandeira: Indisponível"
 
-# 9. Sensor de temperatura e umidade
+# == TEMPERATURA E UMIDADE DO QUARTO ==
 try:
-    r = requests.get(f"{HA_URL}/api/states/climate.quarto", headers=HEADERS, timeout=10)
+    r = requests.get(
+        f"{HA_URL}/api/states/climate.quarto", headers=HEADERS, timeout=10
+    )
     if r.status_code == 200:
         rec = r.json()
         temp = rec.get("attributes", {}).get("current_temperature", "?")
@@ -142,44 +145,37 @@ try:
 except:
     clima_quarto = "Desconhecido"
 
-# 10. Gera HTML
+# == MONTAGEM DO HTML ==
 html_template = f"""
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>{data_hoje} — {clima_quarto}</title>
+  <title>{{data_hoje}} — {{clima_quarto}}</title>
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <style>
-    body {{ margin:0; background:#000; color:#00FF00; font-family:'VT323',monospace; }}
-    .outer {{ border:2px solid #00AA00; max-width:700px; margin:10px auto; padding:10px; background:#000; display:none; }}
-    .section {{ border:1px solid #00AA00; padding:10px; margin-top:10px; }}
-    .section h3 {{ margin:0 0 5px; border-bottom:1px dashed #00AA00; padding-bottom:5px; opacity:0.9; text-transform:uppercase; }}
-    #bootScreen {{ white-space:pre; background:#000; color:#00FF00; padding:20px; font-size:1em; }}
-    @keyframes blink {{ 50% {{ opacity:0; }} }}
+    body {{ margin:0; background:#000; color:#0F0; font-family:'VT323',monospace; }}
+    .outer {{ border:2px solid #0A0; max-width:700px; margin:10px auto; padding:10px; display:none; }}
+    .section {{ border:1px solid #0A0; padding:10px; margin-top:10px; }}
+    .section h3 {{ margin:0 0 5px; border-bottom:1px dashed #0A0; text-transform:uppercase; }}
+    #bootScreen {{ white-space:pre; color:#0F0; padding:20px; font-size:1em; }}
   </style>
 </head>
 <body>
   <audio id="bootSound" src="assets/sons/boot.mp3"></audio>
   <div id="bootScreen"></div>
   <div class="outer">
-    <div class="section">
-      <h3>Luzes</h3>
-    </div>
-    <div class="section">
-      <h3>Dispositivos</h3>
-    </div>
-    <div class="section">
-      <h3>Cenas</h3>
-    </div>
+    <div class="section"><h3>Luzes</h3></div>
+    <div class="section"><h3>Dispositivos</h3></div>
+    <div class="section"><h3>Cenas</h3></div>
     <div class="section">
       <h3>Sistema</h3>
-      <p>{clima}</p>
-      <p>{agenda_text}</p>
-      <p>{internet_text}</p>
-      <p>{feriado_text}</p>
-      <p>{filtro_text}</p>
-      <p>{bandeira_text}</p>
+      <p>{{clima}}</p>
+      <p>{{agenda_text}}</p>
+      <p>{{internet_text}}</p>
+      <p>{{feriado_text}}</p>
+      <p>{{filtro_text}}</p>
+      <p>{{bandeira_text}}</p>
     </div>
   </div>
   <script>
@@ -193,24 +189,15 @@ html_template = f"""
     function showNext() {{
       const el = document.getElementById('bootScreen');
       if (idx < bootLines.length) {{
-        el.innerText += bootLines[idx] + '\\n';
-        idx++;
-        setTimeout(showNext, 300);
-      }} else {{
-        setTimeout(() => {{
-          document.getElementById('bootScreen').style.display = 'none';
-          document.querySelector('.outer').style.display = 'block';
-        }}, 1000);
-      }}
+        el.innerText += bootLines[idx] + '\n'; idx++; setTimeout(showNext, 300);
+      }} else {{ setTimeout(() => {{ el.style.display='none'; document.querySelector('.outer').style.display='block'; }}, 1000); }}
     }}
-    document.addEventListener('DOMContentLoaded', () => {{
-      document.getElementById('bootSound').play();
-      showNext();
-    }});
+    document.addEventListener('DOMContentLoaded', () => {{ document.getElementById('bootSound').play(); showNext(); }});
   </script>
 </body>
 </html>
 """
 
+# Salva o arquivo index.html
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html_template)
