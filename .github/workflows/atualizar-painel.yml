@@ -1,13 +1,13 @@
 name: Atualizar Painel REST do Quarto
 
-# Permissões necessárias para que o GITHUB_TOKEN possa dar push
+# Permite que o GITHUB_TOKEN faça push no próprio repositório
 permissions:
   contents: write
 
 on:
   schedule:
-    - cron: '0 * * * *'    # dispara a cada hora
-  workflow_dispatch:      # permite disparar manualmente
+    - cron: '0 * * * *'  # a cada hora
+  workflow_dispatch:
 
 jobs:
   build:
@@ -36,6 +36,11 @@ jobs:
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
         run: python get_painel_quarto.py
 
+      - name: Mover índice para pasta docs para GitHub Pages
+        run: |
+          mkdir -p docs
+          mv index.html docs/index.html
+
       - name: Commit e Push
         run: |
           git config user.name "github-actions"
@@ -43,5 +48,3 @@ jobs:
           git add docs/index.html
           git commit -m "Atualização automática do painel" || echo "Nada para commitar"
           git push
-
-# Certifique-se, no Settings > Pages, de apontar a fonte para branch 'main' e pasta '/docs'
