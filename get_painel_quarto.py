@@ -1,31 +1,33 @@
 #!/usr/bin/env python3
+# get_painel_quarto.py
+
 import os
 import requests
 import speedtest
 from datetime import datetime
 import holidays
-from bandeira import fetch_bandeira
+from bandeira import fetch_bandeira  # seu módulo bandeira.py
 
-# ─── 1) CONFIGURE AQUI SEUS LABELS E entity_id ───────────────────────────
+# ─── 1) BOTÕES: substitua pelos seus labels e entity_ids ──────────────────
 BUTTONS_LIGHTS = [
-    ("Quarto",            "switch.sonoff_1001a6434"),
-    ("Abajur 1",          "switch.sonoff_a4400262ed"),
-    ("Abajur 2",          "switch.sonoff_a4400235ee"),
-    ("Cama",              "switch.sonoff_a440022d3e"),
-    ("Banheiro Suite",    "switch.sonoff_1000e6bdb1"),
+    ("Quarto",       "light.sonoff_a440020ad4"),
+    ("Abajur 1",     "light.sonoff_a440022ce9"),
+    ("Abajur 2",     "light.sonoff_a440031777"),
+    ("Cama",         "light.sonoff_1000d6bdb1"),
+    ("Banheiro Suite","light.sonoff_1000d6bdb2"),
 ]
 
 BUTTONS_DEVICES = [
-    ("Ar-condicionado",   "climate.ar_condicionado_quarto"),
-    ("Projetor",          "switch.projetor_quarto"),
-    ("iPad",              "switch.ipad_quarto"),
+    ("Ventilador",   "switch.sonoff_1000e5465f"),
+    ("Projetor",     "switch.sonoff_1000c43d82"),
+    ("iPad",         "switch.sonoff_1000f541f7_1"),
 ]
 
 BUTTONS_SCENES = [
-    ("Vermelhas",         "scene.luzes_vermelhas"),
-    ("Grafite",           "scene.luzes_grafite"),
-    ("Aconchegante",      "scene.luzes_aconchegante"),
-    ("Banheiro",          "scene.luzes_banheiro"),
+    ("Vermelhas",    "scene.vermelhas"),
+    ("Grafite",      "scene.grafite"),
+    ("Aconchegante", "scene.aconchegante"),
+    ("Banheiro",     "scene.banheiro"),
 ]
 
 # ─── 2) Google Calendar (opcional) ───────────────────────────────────────
@@ -46,200 +48,243 @@ if HAS_GOOGLE and CALENDAR_ID:
     creds = Credentials.from_service_account_file("service_account.json", scopes=SCOPES)
     service = build("calendar", "v3", credentials=creds)
 
-# ─── 3) DATAS E HORAS ─────────────────────────────────────────────────────
+# ─── 3) Datas e horas ────────────────────────────────────────────────────
 now = datetime.now()
 data_hoje = now.strftime("%d/%m/%Y")
 hora_hoje = now.strftime("%H:%M")
 
-# ─── 4) FERIADOS SP ──────────────────────────────────────────────────────
+# ─── 4) Feriados SP ──────────────────────────────────────────────────────
 br_holidays = holidays.Brazil(prov="SP")
 feriado = br_holidays.get(now.date())
 if feriado:
-    feriado_text = f"Hoje é feriado: {feriado}"
+    feriado_text = "Hoje é feriado: " + feriado
 else:
     futuros = sorted(d for d in br_holidays if d > now.date() and d.year == now.year)
     if futuros:
         pd = futuros[0]
-        feriado_text = f"Próximo feriado: {br_holidays[pd]} em {pd.strftime('%d/%m/%Y')}"
+        feriado_text = "Próximo feriado: {} em {}".format(br_holidays[pd], pd.strftime("%d/%m/%Y"))
     else:
         feriado_text = "Não há mais feriados este ano"
 
-# ─── 5) CLIMA ATUAL via WTTR.IN (com ícone e condição) ───────────────────
-def get_tempo_atual():
-    try:
-        txt = requests.get(
-            "https://wttr.in/Sao+Paulo?format=%c+%C+%t&lang=pt&m",
-            timeout=5
-        ).text
-        # Humidity: usar WTTR? fallback:
-        # aqui só exibimos o texto retornado
-        return txt
-    except:
-        return "Tempo indisponível"
-
-# ─── 6) PREVISÃO via WTTR.IN (mín/max/chuva) ─────────────────────────────
-def get_previsao():
-    try:
-        txt = requests.get(
-            "https://wttr.in/Sao+Paulo?format=Min:+%m+Max:+%M+Chuva:+%p&lang=pt&m",
-            timeout=5
-        ).text
-        return txt
-    except:
-        return "Previsão indisponível"
-
-# ─── 7) CLIMA DO QUARTO via REST do HA ──────────────────────────────────
-HA_URL   = os.environ.get("HA_URL", "").rstrip('/')
+# ─── 5) Clima do quarto via HA ───────────────────────────────────────────
+HA_URL   = os.environ.get("HA_URL", "")
 HA_TOKEN = os.environ.get("HA_TOKEN", "")
 
 def get_clima_quarto():
     try:
-        # sensor de temperatura e umidade (ajuste para seus entity_id)
-        t = requests.get(f"{HA_URL}/api/states/sensor.quarto_temperature",
-                         headers={"Authorization":f"Bearer {HA_TOKEN}","Content-Type":"application/json"}).json().get("state", "—")
-        h = requests.get(f"{HA_URL}/api/states/sensor.quarto_humidity",
-                         headers={"Authorization":f"Bearer {HA_TOKEN}","Content-Type":"application/json"}).json().get("state", "—")
-        return f"{data_hoje} {hora_hoje} — {t}°C / {h}%"
+        resp = requests.get(
+            HA_URL + "/api/states/climate.quarto",
+            headers={"Authorization": "Bearer " + HA_TOKEN, "Content-Type": "application/json"}
+        ).json()
+        temp = resp.get("state", "—")
+        hum  = resp.get("attributes", {}).get("current_humidity", "—")
+        return "{} {} — {}°C / {}%".format(data_hoje, hora_hoje, temp, hum)
     except:
         return "Clima quarto indisponível"
 
-# ─── 8) AGENDA via Google Calendar ───────────────────────────────────────
+# ─── 6) Agenda via Google Calendar ──────────────────────────────────────
 def get_agenda():
     if HAS_GOOGLE and CALENDAR_ID:
         time_min = now.isoformat() + "Z"
         time_max = now.replace(hour=23, minute=59, second=59).isoformat() + "Z"
         try:
-            evs = service.events().list(
-                calendarId=CALENDAR_ID, timeMin=time_min,
-                timeMax=time_max, singleEvents=True,
+            events = service.events().list(
+                calendarId=CALENDAR_ID,
+                timeMin=time_min,
+                timeMax=time_max,
+                singleEvents=True,
                 orderBy="startTime"
             ).execute().get("items", [])
-            if not evs:
+            if not events:
                 return "Compromissos: Nenhum"
             lines = []
-            for ev in evs:
+            for ev in events:
                 start = ev["start"].get("dateTime", ev["start"].get("date"))
                 t = start.split("T")[1][:5] if "T" in start else start
-                lines.append(f"{t} – {ev.get('summary','Sem título')}")
+                lines.append(t + " – " + ev.get("summary","Sem título"))
             return "Compromissos:<br>" + "<br>".join(lines)
         except:
             return "Agenda indisponível"
     return "Compromissos: Nenhum"
 
-# ─── 9) VELOCIDADE DE INTERNET ────────────────────────────────────────────
+# ─── 7) Velocidade de Internet ──────────────────────────────────────────
 def get_speed():
     try:
         st = speedtest.Speedtest()
         st.get_best_server()
         down = int(st.download()/1_000_000)
         up   = int(st.upload()/1_000_000)
-        return f"Velocidade: {down} ↓ / {up} ↑"
+        return "Velocidade: {} ↓ / {} ↑".format(down, up)
     except:
-        return "Velocidade: offline"
+        return "Velocidade: Offline"
 
-# ───10) FILTRO DE AR ─────────────────────────────────────────────────────
+# ─── 8) Filtro do Ar ────────────────────────────────────────────────────
 def get_filtro():
     try:
-        st = requests.get(
-            f"{HA_URL}/api/states/binary_sensor.quarto_filter_clean_required",
-            headers={"Authorization":f"Bearer {HA_TOKEN}","Content-Type":"application/json"}
+        resp = requests.get(
+            HA_URL + "/api/states/binary_sensor.quarto_filter_clean_required",
+            headers={"Authorization": "Bearer " + HA_TOKEN, "Content-Type": "application/json"}
         ).json()
-        return "Limpeza: 🚩" if st.get("state")=="on" else "Limpeza: OK"
+        return "Limpeza: 🚩" if resp.get("state") == "on" else "Limpeza: OK"
     except:
         return "Limpeza: —"
 
-# ───11) BANDEIRA ANEEL ───────────────────────────────────────────────────
+# ─── 9) Bandeira Tarifária ──────────────────────────────────────────────
 def get_bandeira():
     try:
-        return f"Bandeira: {fetch_bandeira()}"
+        return "Bandeira: " + fetch_bandeira()
     except:
         return "Bandeira: —"
 
-# ───12) MONTA O HTML ─────────────────────────────────────────────────────
-buttons_html = lambda lst: "".join(
-    f'<button onclick="toggleEntity(\\\'{eid}\\\')">{label}</button>'
-    for label, eid in lst
-)
-
-html = f"""<!DOCTYPE html>
+# ─── 10) Monta o HTML final ─────────────────────────────────────────────
+html = """<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Painel Quarto — {data_hoje} {hora_hoje}</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Painel Quarto — {data} {hora}</title>
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <style>
     body {{ margin:0; background:#000; color:#0F0; font-family:'VT323',monospace; }}
     .outer {{ border:2px solid #0A0; max-width:800px; margin:10px auto; padding:10px; display:none; }}
     .section {{ border:1px solid #0A0; padding:10px; margin-top:10px; }}
-    .section h3 {{ margin:0; border-bottom:1px dashed #0A0; text-transform:uppercase; }}
-    button {{ margin:4px; padding:8px 12px; background:#000; color:#0F0; border:1px solid #0A0; cursor:pointer; }}
+    .section h3 {{ margin:0 0 5px; border-bottom:1px dashed #0A0; text-transform:uppercase; }}
+    button {{
+      display:inline-block; margin:5px; padding:8px 12px;
+      background:#000; color:#0F0; border:1px solid #0A0;
+      font-family:'VT323',monospace; cursor:pointer;
+    }}
   </style>
 </head>
 <body>
   <audio id="bootSound" src="assets/sons/boot.mp3"></audio>
+
   <!-- Boot MS‑DOS -->
-  <div id="bootScreen" style="white-space:pre; color:#0F0; font-family:'VT323',monospace; background:#000; padding:20px; font-size:1.1em;"></div>
+  <div id="bootScreen" style="
+    white-space:pre; color:#0F0; font-family:'VT323',monospace;
+    background:#000; padding:20px; font-size:1.1em;
+  "></div>
+
   <div class="outer">
-    <div class="section"><h3>Luzes</h3>{buttons_html(BUTTONS_LIGHTS)}</div>
-    <div class="section"><h3>Dispositivos</h3>{buttons_html(BUTTONS_DEVICES)}</div>
-    <div class="section"><h3>Cenas</h3>{buttons_html(BUTTONS_SCENES)}</div>
+    <div class="section"><h3>Luzes</h3>
+      {btn_lights}
+    </div>
+    <div class="section"><h3>Dispositivos</h3>
+      {btn_devs}
+    </div>
+    <div class="section"><h3>Cenas</h3>
+      {btn_scenes}
+    </div>
     <div class="section"><h3>Agenda</h3>
-      <p>Data: {data_hoje}</p>
-      <p>Hora: {hora_hoje}</p>
-      <p>{feriado_text}</p>
-      <p>{get_agenda()}</p>
+      <p>Data: {data}</p>
+      <p>Hora: {hora}</p>
+      <p>{feriado}</p>
+      <p>{agenda}</p>
     </div>
     <div class="section"><h3>Tempo</h3>
-      <p>{get_tempo_atual()}</p>
-      <p>Previsão: {get_previsao()}</p>
+      <p>{tempo_atual}</p>
+      <p>{previsao}</p>
     </div>
     <div class="section"><h3>Sistema</h3>
-      <p>{get_clima_quarto()}</p>
-      <p>{get_speed()}</p>
-      <p>{get_filtro()}</p>
-      <p>{get_bandeira()}</p>
+      <p>{clima_quarto}</p>
+      <p>{velocidade}</p>
+      <p>{filtro}</p>
+      <p>{bandeira}</p>
     </div>
   </div>
+
   <script>
-    const HA_URL   = "{HA_URL}";
-    const HA_TOKEN = "{HA_TOKEN}";
-    const bootLines = [
-      "Phoenix Technologies Ltd.  Version 4.06",
+    var HA_URL   = "{ha_url}";
+    var HA_TOKEN = "{ha_token}";
+
+    var bootLines = [
+      "Phoenix Technologies Ltd. Version 4.06",
       "Copyright (C) 1985-2001, Phoenix Technologies Ltd.",
+      "",
+      "Intel(R) Pentium(R) III CPU 1133MHz",
+      "Memory Testing: 524288K OK",
+      "",
+      "Primary Master: ST380021A  3.18",
+      "Primary Slave:  CD-ROM 52X",
+      "Secondary Master: None",
+      "Secondary Slave: None",
+      "",
+      "Keyboard Detected: USB Keyboard",
+      "Mouse Initialized: PS/2 Compatible",
+      "",
+      "Press DEL to enter Setup",
       "",
       "Loading DOS...",
       "Starting Smart Panel Interface..."
     ];
-    let i=0;
-    function showNextLine() {{
-      const el = document.getElementById("bootScreen");
-      if(i<bootLines.length) {{
+    var i = 0;
+    function showNextLine() {
+      var el = document.getElementById("bootScreen");
+      if (i < bootLines.length) {
         el.innerText += bootLines[i++] + "\\n";
         setTimeout(showNextLine, 300);
-      }} else {{
-        setTimeout(()=>{{ el.style.display="none"; document.querySelector(".outer").style.display="block"; }}, 800);
-      }}
-    }}
-    function toggleEntity(entity_id) {{
-      new Audio("assets/sons/on.mp3").play();
-      fetch(`${{HA_URL}}/api/services/homeassistant/toggle`, {{
-        method:"POST",
-        headers:{{
-          "Authorization":`Bearer ${{HA_TOKEN}}`,
-          "Content-Type":"application/json"
-        }},
-        body: JSON.stringify({{ entity_id }})
-      }});
-    }}
-    document.addEventListener("DOMContentLoaded",()=>{{ 
+      } else {
+        setTimeout(function(){
+          el.style.display = "none";
+          document.querySelector(".outer").style.display = "block";
+        }, 800);
+      }
+    }
+
+    function toggleEntity(entity_id) {
+      // toca o mesmo som para todos os botões
+      var snd = new Audio("assets/sons/on.mp3");
+      snd.play();
+
+      // faz o toggle via XHR
+      var xhr = new XMLHttpRequest();
+      xhr.open("POST", HA_URL + "/api/services/homeassistant/toggle", true);
+      xhr.setRequestHeader("Authorization", "Bearer " + HA_TOKEN);
+      xhr.setRequestHeader("Content-Type", "application/json");
+      xhr.send(JSON.stringify({ "entity_id": entity_id }));
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
       document.getElementById("bootSound").play();
       showNextLine();
-    }});
+    });
   </script>
 </body>
 </html>
-"""
+""".format(
+    data          = data_hoje,
+    hora          = hora_hoje,
+    feriado       = feriado_text,
+    agenda        = get_agenda(),
+    tempo_atual   = requests.get("https://wttr.in/Sao+Paulo?format=☁️ %C+%t&lang=pt&m").text + " Humidity " + str(
+                       requests.get("https://wttr.in/Sao+Paulo?format=%h&lang=pt").text
+                     ),
+    previsao      = "Previsão: Min: {} Max: {} Chuva: {}mm".format(
+                       requests.get("https://wttr.in/Sao+Paulo?format=%l+Min+%m&lang=pt").text,
+                       requests.get("https://wttr.in/Sao+Paulo?format=Max+%M&lang=pt").text,
+                       requests.get("https://wttr.in/Sao+Paulo?format=+%p&lang=pt").text
+                     ),
+    clima_quarto  = get_clima_quarto(),
+    velocidade    = get_speed(),
+    filtro        = get_filtro(),
+    bandeira      = get_bandeira(),
+    ha_url        = HA_URL,
+    ha_token      = HA_TOKEN,
+    btn_lights    = "".join(
+        '<button onclick="toggleEntity(\'{eid}\')">{label}</button>'.format(eid=eid, label=label)
+        for label, eid in BUTTONS_LIGHTS
+    ),
+    btn_devs      = "".join(
+        '<button onclick="toggleEntity(\'{eid}\')">{label}</button>'.format(eid=eid, label=label)
+        for label, eid in BUTTONS_DEVICES
+    ),
+    btn_scenes    = "".join(
+        '<button onclick="toggleEntity(\'{eid}\')">{label}</button>'.format(eid=eid, label=label)
+        for label, eid in BUTTONS_SCENES
+    ),
+)
 
-# ───13) SALVA index.html na raiz, será movido para /docs ─────────────────
-with open("index.html", "w", encoding="utf-8") as f:
+# ─── 11) Grava em docs/index.html para o GitHub Pages ───────────────────
+os.makedirs("docs", exist_ok=True)
+with open("docs/index.html", "w", encoding="utf-8") as f:
     f.write(html)
