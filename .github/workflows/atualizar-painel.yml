@@ -6,8 +6,8 @@ permissions:
 
 on:
   schedule:
-    - cron: '0 * * * *'  # dispara a cada hora
-  workflow_dispatch:
+    - cron: '0 * * * *'    # dispara a cada hora
+  workflow_dispatch:      # permite disparar manualmente
 
 jobs:
   build:
@@ -35,11 +35,6 @@ jobs:
           CALENDAR_ID: ${{ secrets.CALENDAR_ID }}
           GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
         run: python get_painel_quarto.py
-
-      - name: Mover índice para pasta docs para GitHub Pages
-        run: |
-          mkdir -p docs
-          mv index.html docs/index.html
 
       - name: Commit e Push
         run: |
