@@ -1,12 +1,12 @@
 name: Atualizar Painel REST do Quarto
 
-# Permite que o GITHUB_TOKEN faça push no próprio repositório
+# Permissões para o GITHUB_TOKEN dar push no branch
 permissions:
   contents: write
 
 on:
   schedule:
-    - cron: '0 * * * *'  # a cada hora
+    - cron: '0 * * * *'   # a cada hora no minuto zero
   workflow_dispatch:
 
 jobs:
