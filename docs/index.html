@@ -1,1 +1,94 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel Quarto — 21/04/2025 17:15</title>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <style>
+    body { margin:0; background:#000; color:#0F0; font-family:'VT323',monospace; }
+    .outer { border:2px solid #0A0; max-width:800px; margin:10px auto; padding:10px; display:none; }
+    .section { border:1px solid #0A0; padding:10px; margin-top:10px; }
+    .section h3 { margin:0 0 5px; border-bottom:1px dashed #0A0; text-transform:uppercase; }
+    button {
+      display:inline-block; margin:5px; padding:8px 12px;
+      background:#000; color:#0F0; border:1px solid #0A0;
+      font-family:'VT323',monospace; cursor:pointer;
+    }
+  </style>
+</head>
+<body>
+  <audio id="bootSound" src="assets/sons/boot.mp3"></audio>
+  <!-- Boot MS‑DOS -->
+  <div id="bootScreen" style="
+    white-space: pre; color:#0F0; font-family:'VT323',monospace;
+    background:#000; padding:20px; font-size:1.1em;
+  "></div>
 
+  <div class="outer">
+    <div class="section"><h3>Luzes</h3><button onclick="toggleEntity('light.sonoff_a4400262ed')">Quarto</button><button onclick="toggleEntity('switch.sonoff_1000da054f')">Abajur 1</button><button onclick="toggleEntity('switch.sonoff_1001e1e063')">Abajur 2</button><button onclick="toggleEntity('switch.sonoff_1000e52367')">Cama</button><button onclick="toggleEntity('switch.sonoff_1000e54832')">Banheiro Suíte</button></div>
+    <div class="section"><h3>Dispositivos</h3><button onclick="toggleEntity('climate.quarto')">Ar-condicionado</button><button onclick="toggleEntity('switch.sonoff_100118eb9b_1')">Projetor</button><button onclick="toggleEntity('switch.sonoff_1001e49ef2_1')">iPad</button></div>
+    <div class="section"><h3>Cenas</h3></div>
+    <div class="section"><h3>Sistema</h3>
+      <p>Clima indisponível</p>
+      <p>Compromissos: Nenhum</p>
+      <p>Velocidade: 1002 ↓ / 1397 ↑</p>
+      <p>Hoje é feriado: Tiradentes' Day</p>
+      <p>Limpeza: —</p>
+      <p>Bandeira: Verde</p>
+    </div>
+  </div>
+
+  <script>
+    const bootLines = [
+      "Phoenix Technologies Ltd.  Version 4.06",
+      "Copyright (C) 1985-2001, Phoenix Technologies Ltd.",
+      "",
+      "Intel(R) Pentium(R) III CPU 1133MHz",
+      "Memory Testing: 524288K OK",
+      "",
+      "Primary Master: ST380021A  3.18",
+      "Primary Slave:  CD-ROM 52X",
+      "Secondary Master: None",
+      "Secondary Slave: None",
+      "",
+      "Keyboard Detected: USB Keyboard",
+      "Mouse Initialized: PS/2 Compatible",
+      "",
+      "Press DEL to enter Setup",
+      "",
+      "Loading DOS...",
+      "Starting Smart Panel Interface..."
+    ];
+    let idx = 0;
+    function showNextLine() {
+      const el = document.getElementById('bootScreen');
+      if (idx < bootLines.length) {
+        el.innerText += bootLines[idx++] + "\n";
+        setTimeout(showNextLine, 300);
+      } else {
+        setTimeout(() => {
+          el.style.display = "none";
+          document.querySelector('.outer').style.display = "block";
+        }, 1000);
+      }
+    }
+
+    function toggleEntity(entity_id) {
+      new Audio('assets/sons/on.mp3').play();
+      fetch('http://192.168.1.33:8123/api/services/homeassistant/toggle', {
+        method: 'POST',
+        headers: {
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhZTJiMTQyODk1OWY0MzIxOTQ0ZDllYTU2YjkyZDIxYiIsImlhdCI6MTc0NTI0MjIyMSwiZXhwIjoyMDYwNjAyMjIxfQ.6CzMrvzVGlq7daV3XeXXfkkeP-v_laoW8tf0haa-Ebo',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ entity_id })
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('bootSound').play();
+      showNextLine();
+    });
+  </script>
+</body>
+</html>
