@@ -1,7 +1,7 @@
 name: Atualizar Painel REST do Quarto
 
 # Permissões necessárias para que o GITHUB_TOKEN possa dar push
-template_permissions:
+permissions:
   contents: write
 
 on:
@@ -17,7 +17,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
         with:
-          # garante que o GITHUB_TOKEN configurado no Actions seja usado para push
           persist-credentials: true
 
       - name: Configurar Python
