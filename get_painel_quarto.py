@@ -1,8 +1,130 @@
-# ... (todo o código de coleta de dados acima permanece igual)
+#!/usr/bin/env python3
+import os
+import requests
+import speedtest
+from datetime import datetime
+import holidays
+from bandeira import fetch_bandeira  # seu módulo bandeira.py
 
-# -----------------------------
-# Montagem do HTML corrigida
-# -----------------------------
+# ─── 1) BOTÕES: substitua pelos seus labels e entity_ids ──────────────────
+BUTTONS_LIGHTS = [
+    ("Luz da cama", "switch.sonoff_1000e52367"),
+    ("Luz da mesa", "switch.sonoff_1000c43d82"),
+    # ...
+]
+BUTTONS_DEVICES = [
+    ("Ventilador", "switch.sonoff_1000e5465f"),
+    # ...
+]
+BUTTONS_SCENES = [
+    ("Cena Filme", "scene.filme_noite"),
+    # ...
+]
+
+# ─── 2) Google Calendar (opcional) ───────────────────────────────────────
+HAS_GOOGLE = False
+try:
+    from google.oauth2.service_account import Credentials
+    from googleapiclient.discovery import build
+    HAS_GOOGLE = True
+except ImportError:
+    pass
+
+CALENDAR_ID = os.environ.get("CALENDAR_ID", "")
+if HAS_GOOGLE and CALENDAR_ID:
+    SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
+    creds_json = os.environ.get("GOOGLE_CREDENTIALS", "")
+    with open("service_account.json", "w", encoding="utf-8") as f:
+        f.write(creds_json)
+    creds = Credentials.from_service_account_file("service_account.json", scopes=SCOPES)
+    service = build("calendar", "v3", credentials=creds)
+
+# ─── 3) Datas e horas ────────────────────────────────────────────────────
+now = datetime.now()
+data_hoje = now.strftime("%d/%m/%Y")
+hora_hoje = now.strftime("%H:%M")
+
+# ─── 4) Feriados SP ──────────────────────────────────────────────────────
+br_holidays = holidays.Brazil(prov="SP")
+feriado = br_holidays.get(now.date())
+if feriado:
+    feriado_text = f"Hoje é feriado: {feriado}"
+else:
+    futuros = sorted(d for d in br_holidays if d > now.date() and d.year == now.year)
+    if futuros:
+        pd = futuros[0]
+        feriado_text = f"Próximo feriado: {br_holidays[pd]} em {pd.strftime('%d/%m/%Y')}"
+    else:
+        feriado_text = "Não há mais feriados este ano"
+
+# ─── 5) Clima via Home Assistant ─────────────────────────────────────────
+HA_URL   = os.environ.get("HA_URL", "")
+HA_TOKEN = os.environ.get("HA_TOKEN", "")
+def get_clima():
+    try:
+        resp = requests.get(
+            f"{HA_URL}/api/states/climate.quarto",
+            headers={"Authorization":f"Bearer {HA_TOKEN}","Content-Type":"application/json"}
+        ).json()
+        temp = resp.get("state", "—")
+        hum  = resp.get("attributes", {}).get("current_humidity", "—")
+        return f"{data_hoje} {hora_hoje} — {temp}°C / {hum}%"
+    except:
+        return "Clima indisponível"
+
+# ─── 6) Agenda via Google Calendar ──────────────────────────────────────
+def get_agenda():
+    if HAS_GOOGLE and CALENDAR_ID:
+        time_min = now.isoformat() + "Z"
+        time_max = now.replace(hour=23, minute=59, second=59).isoformat() + "Z"
+        try:
+            events = service.events().list(
+                calendarId=CALENDAR_ID, timeMin=time_min,
+                timeMax=time_max, singleEvents=True,
+                orderBy="startTime"
+            ).execute().get("items", [])
+            if not events:
+                return "Compromissos: Nenhum"
+            lines = []
+            for ev in events:
+                start = ev["start"].get("dateTime", ev["start"].get("date"))
+                t = start.split("T")[1][:5] if "T" in start else start
+                lines.append(f"{t} – {ev.get('summary','Sem título')}")
+            return "Compromissos:<br>" + "<br>".join(lines)
+        except:
+            return "Agenda indisponível"
+    return "Compromissos: Nenhum"
+
+# ─── 7) Velocidade de Internet ──────────────────────────────────────────
+def get_speed():
+    try:
+        st = speedtest.Speedtest()
+        st.get_best_server()
+        down = int(st.download()/1_000_000)
+        up   = int(st.upload()/1_000_000)
+        return f"Velocidade: {down} ↓ / {up} ↑"
+    except:
+        return "Velocidade: Offline"
+
+# ─── 8) Filtro do Ar ────────────────────────────────────────────────────
+def get_filtro():
+    try:
+        resp = requests.get(
+            f"{HA_URL}/api/states/binary_sensor.quarto_filter_clean_required",
+            headers={"Authorization":f"Bearer {HA_TOKEN}","Content-Type":"application/json"}
+        ).json()
+        return "Limpeza: 🚩" if resp.get("state") == "on" else "Limpeza: OK"
+    except:
+        return "Limpeza: —"
+
+# ─── 9) Bandeira Tarifária ──────────────────────────────────────────────
+def get_bandeira():
+    try:
+        return f"Bandeira: {fetch_bandeira()}"
+    except:
+        return "Bandeira: —"
+
+# ─── 10) Monta o HTML final ─────────────────────────────────────────────
 html = """<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -11,7 +133,7 @@ html = """<!DOCTYPE html>
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <style>
     body { margin:0; background:#000; color:#0F0; font-family:'VT323',monospace; }
-    .outer { border:2px solid #0A0; max-width:700px; margin:10px auto; padding:10px; display:none; }
+    .outer { border:2px solid #0A0; max-width:800px; margin:10px auto; padding:10px; display:none; }
     .section { border:1px solid #0A0; padding:10px; margin-top:10px; }
     .section h3 { margin:0 0 5px; border-bottom:1px dashed #0A0; text-transform:uppercase; }
     button {
@@ -23,10 +145,10 @@ html = """<!DOCTYPE html>
 </head>
 <body>
   <audio id="bootSound" src="assets/sons/boot.mp3"></audio>
-  <!-- Tela de Boot MS‑DOS -->
+  <!-- Boot MS‑DOS -->
   <div id="bootScreen" style="
-    white-space: pre; color: #00FF00; font-family: 'VT323', monospace;
-    background: black; padding: 20px; font-size: 1.1em;
+    white-space: pre; color:#0F0; font-family:'VT323',monospace;
+    background:#000; padding:20px; font-size:1.1em;
   "></div>
 
   <div class="outer">
@@ -50,14 +172,33 @@ html = """<!DOCTYPE html>
   </div>
 
   <script>
-    // Boot MS‑DOS...
-    const bootLines = [ /* ... */ ];
-    let li = 0;
-    function showNext() {
+    // boot.txt integrado aqui...
+    const bootLines = [
+      "Phoenix Technologies Ltd.  Version 4.06",
+      "Copyright (C) 1985-2001, Phoenix Technologies Ltd.",
+      "",
+      "Intel(R) Pentium(R) III CPU 1133MHz",
+      "Memory Testing: 524288K OK",
+      "",
+      "Primary Master: ST380021A  3.18",
+      "Primary Slave:  CD-ROM 52X",
+      "Secondary Master: None",
+      "Secondary Slave: None",
+      "",
+      "Keyboard Detected: USB Keyboard",
+      "Mouse Initialized: PS/2 Compatible",
+      "",
+      "Press DEL to enter Setup",
+      "",
+      "Loading DOS...",
+      "Starting Smart Panel Interface..."
+    ];
+    let lineIndex = 0;
+    function showNextLine() {
       const el = document.getElementById('bootScreen');
-      if (li < bootLines.length) {
-        el.innerText += bootLines[li++] + "\\n";
-        setTimeout(showNext, 300);
+      if (lineIndex < bootLines.length) {
+        el.innerText += bootLines[lineIndex++] + "\\n";
+        setTimeout(showNextLine, 300);
       } else {
         setTimeout(() => {
           el.style.display = "none";
@@ -80,24 +221,23 @@ html = """<!DOCTYPE html>
 
     document.addEventListener('DOMContentLoaded', () => {
       document.getElementById('bootSound').play();
-      showNext();
+      showNextLine();
     });
   </script>
 </body>
 </html>
 """ % (
+    # título
     data_hoje, hora_hoje,
-    # luzes
+    # botões
     "".join(
         '<button onclick="toggleEntity(\'%s\')">%s</button>' % (eid, label)
         for label, eid in BUTTONS_LIGHTS
     ),
-    # dispositivos
     "".join(
         '<button onclick="toggleEntity(\'%s\')">%s</button>' % (eid, label)
         for label, eid in BUTTONS_DEVICES
     ),
-    # cenas
     "".join(
         '<button onclick="toggleEntity(\'%s\')">%s</button>' % (eid, label)
         for label, eid in BUTTONS_SCENES
@@ -108,12 +248,12 @@ html = """<!DOCTYPE html>
     get_speed(),
     feriado_text,
     get_filtro(),
-    get_bandeira_text(),
-    # variáveis para REST toggle
+    get_bandeira(),
+    # REST toggle
     HA_URL, HA_TOKEN
 )
 
-# grava em docs/index.html
-os.makedirs('docs', exist_ok=True)
-with open('docs/index.html', 'w', encoding='utf-8') as f:
+# ─── 11) Salva em docs/index.html para o GitHub Pages ────────────────────
+os.makedirs("docs", exist_ok=True)
+with open("docs/index.html", "w", encoding="utf-8") as f:
     f.write(html)
