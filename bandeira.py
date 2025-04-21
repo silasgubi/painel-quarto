@@ -1,11 +1,10 @@
 # bandeira.py
-
 import requests
 
 def fetch_bandeira():
     """
     Busca a bandeira tarifária mais recente no portal de dados abertos da ANEEL.
-    Retorna uma string como "VERDE", "AMARELA" ou "VERMELHA 1", etc.
+    Retorna: "VERDE", "AMARELA", "VERMELHA 1", etc., ou "—" em caso de erro.
     """
     resource_id = '0591b8f6-fe54-437b-b72b-1aa2efd46e42'
     api_url = (
