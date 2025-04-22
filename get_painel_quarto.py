@@ -19,7 +19,7 @@ NABU_BASE  = os.getenv("NABU_URL").rstrip("/")
 # ─── LEITURA DA PLANILHA CSV (latin-1) ─────────────────────────────────────
 buttons = {}
 with open("planilha_quarto.csv", encoding="latin-1", newline="") as f:
-    reader = csv.DictReader(f)
+    reader = csv.DictReader(f, delimiter=';')  # Specify semicolon as the delimiter
     for row in reader:
         sec = row["seção"].strip()  # "Luzes", "Dispositivos" ou "Cenas"
         buttons.setdefault(sec, []).append({
