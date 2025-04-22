@@ -9,7 +9,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
-    # injeta TODOS os secrets (webhooks, HA_URL, HA_TOKEN, etc) em env vars
     env:
       HA_URL: ${{ secrets.HA_URL }}
       HA_TOKEN: ${{ secrets.HA_TOKEN }}
@@ -24,7 +23,7 @@ jobs:
       WEBHOOK_AR_CONDICIONADO: ${{ secrets.WEBHOOK_AR_CONDICIONADO }}
       WEBHOOK_PROJETOR: ${{ secrets.WEBHOOK_PROJETOR }}
       WEBHOOK_IPAD: ${{ secrets.WEBHOOK_IPAD }}
-      # adicione aqui cada webhook referente aos botões na sua planilha
+      # adicione aqui os demais webhooks da sua planilha como secrets
 
     steps:
       - name: Checkout repository
