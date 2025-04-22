@@ -2,43 +2,54 @@ name: Atualizar Painel REST do Quarto
 
 on:
   schedule:
-    - cron: '0 * * * *'    # roda a cada hora
-  workflow_dispatch:      # permite rodar “manualmente” na UI
+    - cron: '0 * * * *'        # a cada hora
+  workflow_dispatch:          # permite trigger manual
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
-    # 1) Aqui você injeta os seus secrets em ENV vars
+    # injeta TODOS os secrets (webhooks, HA_URL, HA_TOKEN, etc) em env vars
     env:
-      HA_URL:            ${{ secrets.HA_URL }}
-      HA_TOKEN:          ${{ secrets.HA_TOKEN }}
-      CALENDAR_ID:       ${{ secrets.CALENDAR_ID }}
+      HA_URL: ${{ secrets.HA_URL }}
+      HA_TOKEN: ${{ secrets.HA_TOKEN }}
+      CALENDAR_ID: ${{ secrets.CALENDAR_ID }}
       GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+      NABU_URL: ${{ secrets.NABU_URL }}
+      WEBHOOK_QUARTO: ${{ secrets.WEBHOOK_QUARTO }}
+      WEBHOOK_ABAJUR1: ${{ secrets.WEBHOOK_ABAJUR1 }}
+      WEBHOOK_ABAJUR2: ${{ secrets.WEBHOOK_ABAJUR2 }}
+      WEBHOOK_CAMA: ${{ secrets.WEBHOOK_CAMA }}
+      WEBHOOK_BANHEIRO_SUITE: ${{ secrets.WEBHOOK_BANHEIRO_SUITE }}
+      WEBHOOK_AR_CONDICIONADO: ${{ secrets.WEBHOOK_AR_CONDICIONADO }}
+      WEBHOOK_PROJETOR: ${{ secrets.WEBHOOK_PROJETOR }}
+      WEBHOOK_IPAD: ${{ secrets.WEBHOOK_IPAD }}
+      # adicione aqui cada webhook referente aos botões na sua planilha
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Configurar Python
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
 
-      - name: Instalar dependências
-        run: |
-          pip install requests speedtest-cli holidays \
-                      google-api-python-client google-auth
+      - name: Install dependencies
+        run: pip install requests speedtest-cli holidays google-api-python-client google-auth
 
-      - name: Gerar painel HTML
+      - name: Run script to generate painel
         run: python get_painel_quarto.py
 
-      - name: Publicar no GitHub Pages
+      - name: Move for GitHub Pages
         run: |
           mkdir -p docs
-          mv docs/index.html docs/index.html
+          mv index.html docs/index.html
+
+      - name: Commit & Push
+        run: |
           git config user.name "github-actions"
           git config user.email "actions@github.com"
           git add docs/index.html
-          git commit -m "Atualização automática do painel" || echo "Sem mudanças"
+          git commit -m "Atualização automática do painel" || echo "Nada para commitar"
           git push
