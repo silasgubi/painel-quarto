@@ -2,28 +2,28 @@ name: Atualizar Painel REST do Quarto
 
 on:
   schedule:
-    - cron: '0 * * * *'        # a cada hora
-  workflow_dispatch:          # permite trigger manual
+    - cron: '0 * * * *'
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     env:
-      HA_URL: ${{ secrets.HA_URL }}
-      HA_TOKEN: ${{ secrets.HA_TOKEN }}
-      CALENDAR_ID: ${{ secrets.CALENDAR_ID }}
+      HA_URL:          ${{ secrets.HA_URL }}
+      HA_TOKEN:        ${{ secrets.HA_TOKEN }}
+      CALENDAR_ID:     ${{ secrets.CALENDAR_ID }}
       GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
-      NABU_URL: ${{ secrets.NABU_URL }}
-      WEBHOOK_QUARTO: ${{ secrets.WEBHOOK_QUARTO }}
-      WEBHOOK_ABAJUR1: ${{ secrets.WEBHOOK_ABAJUR1 }}
-      WEBHOOK_ABAJUR2: ${{ secrets.WEBHOOK_ABAJUR2 }}
-      WEBHOOK_CAMA: ${{ secrets.WEBHOOK_CAMA }}
-      WEBHOOK_BANHEIRO_SUITE: ${{ secrets.WEBHOOK_BANHEIRO_SUITE }}
+      NABU_URL:        ${{ secrets.NABU_URL }}
+      WEBHOOK_QUARTO:          ${{ secrets.WEBHOOK_QUARTO }}
+      WEBHOOK_ABAJUR1:         ${{ secrets.WEBHOOK_ABAJUR1 }}
+      WEBHOOK_ABAJUR2:         ${{ secrets.WEBHOOK_ABAJUR2 }}
+      WEBHOOK_CAMA:            ${{ secrets.WEBHOOK_CAMA }}
+      WEBHOOK_BANHEIRO_SUITE:  ${{ secrets.WEBHOOK_BANHEIRO_SUITE }}
       WEBHOOK_AR_CONDICIONADO: ${{ secrets.WEBHOOK_AR_CONDICIONADO }}
-      WEBHOOK_PROJETOR: ${{ secrets.WEBHOOK_PROJETOR }}
-      WEBHOOK_IPAD: ${{ secrets.WEBHOOK_IPAD }}
-      # adicione aqui os demais webhooks da sua planilha como secrets
+      WEBHOOK_PROJETOR:        ${{ secrets.WEBHOOK_PROJETOR }}
+      WEBHOOK_IPAD:            ${{ secrets.WEBHOOK_IPAD }}
+      # … adicione os demais WEBHOOK_* conforme sua planilha como repository secrets
 
     steps:
       - name: Checkout repository
@@ -35,7 +35,8 @@ jobs:
           python-version: '3.11'
 
       - name: Install dependencies
-        run: pip install requests speedtest-cli holidays google-api-python-client google-auth
+        run: |
+          pip install requests speedtest-cli holidays google-api-python-client google-auth
 
       - name: Run script to generate painel
         run: python get_painel_quarto.py
