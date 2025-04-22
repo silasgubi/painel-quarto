@@ -2,101 +2,129 @@
 import os
 import requests
 import speedtest
-from datetime import datetime
 import holidays
+from datetime import datetime
 from bandeira import fetch_bandeira
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
-# --- 1) Configurações vindas dos Secrets do GitHub Actions ---
-HA_URL       = os.getenv("HA_URL")        # ex: https://tpplz8oygoqmaagdruizwe214e6bl6cs.ui.nabu.casa
+# ─── CONFIGURAÇÃO ──────────────────────────────────────────────────────────
+HA_URL       = os.getenv("HA_URL")
 HA_TOKEN     = os.getenv("HA_TOKEN")
 CALENDAR_ID  = os.getenv("CALENDAR_ID")
-CREDENTIALS_JSON = os.getenv("GOOGLE_CREDENTIALS")
+GOOGLE_CREDS = os.getenv("GOOGLE_CREDENTIALS")
 
-# Checagem rápida de Secrets
-if not (HA_URL and HA_TOKEN and CALENDAR_ID and CREDENTIALS_JSON):
-    raise RuntimeError("Um ou mais Secrets (HA_URL, HA_TOKEN, CALENDAR_ID, GOOGLE_CREDENTIALS) não configurados!")
+# ─── BOTÕES (substitua pelos seus labels, entity_ids e nome do arquivo de ícone) ──
+BUTTONS_LIGHTS = [
+    ("Quarto",           "light.sonoff_1000ea5c7af",      "luz.svg"),
+    ("Abajur 1",         "light.sonoff_1000ec2a21",      "abajur.svg"),
+    ("Abajur 2",         "light.sonoff_1000ef8557",      "abajur.svg"),
+    ("Cama",             "light.sonoff_1000e52367",      "cama.svg"),
+    ("Banheiro Suite",   "light.sonoff_1000e5465f",      "banheiro.svg"),
+]
 
-# --- 2) Dados de Data/Hora e Feriados ---
-now         = datetime.now()
-data_hoje   = now.strftime("%d/%m/%Y")
-hora_hoje   = now.strftime("%H:%M")
+BUTTONS_DEVICES = [
+    ("Ar‑condicionado",  "climate.quarto",               "ar.svg"),
+    ("Projetor",         "switch.sonoff_1000bdffc5",     "projetor.svg"),
+    ("iPad",             "switch.sonoff_1000ef1234",     "ipad.svg"),
+]
 
-br_holidays = holidays.Brazil(prov="SP")
-feriado_hoje = br_holidays.get(now.date())
-feriado_text = feriado_hoje if feriado_hoje else "Nenhum"
+BUTTONS_SCENES = [
+    ("Vermelhas",        "scene.luzes_vermelhas",        "vermelhas.svg"),
+    ("Grafite",          "scene.luzes_grafite",          "grafite.svg"),
+    ("Aconchegante",     "scene.luzes_aconchegantes",    "aconchegante.svg"),
+    ("Banheiro",         "scene.luzes_banheiro",         "banheiro.svg"),
+]
 
-# --- 3) Clima via wttr.in ---
-try:
-    clima_atual = requests.get(
-        "https://wttr.in/Sao+Paulo?format=%c+%C+%t+Humidity+%h&lang=pt&m",
-        timeout=10
-    ).text.strip()
-except Exception as e:
-    clima_atual = f"Erro ao obter clima: {e}"
+# ─── DADOS DINÂMICOS ────────────────────────────────────────────────────────
+now        = datetime.now()
+data_hoje  = now.strftime("%d/%m/%Y")
+hora_hoje  = now.strftime("%H:%M")
+br_holidays= holidays.Brazil(prov="SP")
+feriado    = br_holidays.get(now.date())
+feriado_text = feriado if feriado else "Nenhum"
 
-# --- 4) Velocidade de Internet ---
-try:
-    st = speedtest.Speedtest()
-    st.get_best_server()
-    down = int(st.download() / 1_000_000)
-    up   = int(st.upload()   / 1_000_000)
-    internet_text = f"{down} ↓ / {up} ↑"
-except Exception as e:
-    internet_text = f"Erro Speedtest: {e}"
+# Clima atual do quarto (via HA)
+def get_clima_quarto():
+    try:
+        resp = requests.get(
+            f"{HA_URL}/api/states/climate.quarto",
+            headers={
+                "Authorization": f"Bearer {HA_TOKEN}",
+                "Content-Type": "application/json"
+            },
+            timeout=5
+        ).json()
+        t = resp.get("state", "—")
+        h = resp.get("attributes", {}).get("current_humidity", "—")
+        return f"{t}°C / {h}%"
+    except:
+        return "—"
+clima_quarto = get_clima_quarto()
 
-# --- 5) Filtro do Ar-condicionado via HA REST ---
-try:
-    resp = requests.get(
-        f"{HA_URL}/api/states/binary_sensor.quarto_filter_clean_required",
-        headers={"Authorization": f"Bearer {HA_TOKEN}"},
-        timeout=10
+# Velocidade da internet
+def get_speed():
+    try:
+        st   = speedtest.Speedtest()
+        st.get_best_server()
+        down = int(st.download()/1_000_000)
+        up   = int(st.upload()/1_000_000)
+        return f"{down} ↓ / {up} ↑"
+    except:
+        return "—"
+internet_text = get_speed()
+
+# Limpeza filtros ar
+def get_limpeza():
+    try:
+        resp = requests.get(
+            f"{HA_URL}/api/states/binary_sensor.quarto_filter_clean_required",
+            headers={
+                "Authorization": f"Bearer {HA_TOKEN}",
+                "Content-Type": "application/json"
+            },
+            timeout=5
+        ).json()
+        return "Necessário" if resp.get("state")=="on" else "OK"
+    except:
+        return "—"
+limpeza_text = get_limpeza()
+
+# Bandeira tarifária
+bandeira_text = fetch_bandeira()
+
+# Agenda no Google Calendar
+with open("service_account.json","w",encoding="utf-8") as f:
+    f.write(GOOGLE_CREDS)
+creds   = Credentials.from_service_account_file("service_account.json",
+                                               scopes=["https://www.googleapis.com/auth/calendar.readonly"])
+service = build("calendar","v3",credentials=creds)
+time_min = now.isoformat()+"Z"
+time_max = now.replace(hour=23,minute=59,second=59).isoformat()+"Z"
+events  = service.events().list(
+    calendarId=CALENDAR_ID,
+    timeMin=time_min,
+    timeMax=time_max,
+    singleEvents=True,
+    orderBy="startTime"
+).execute().get("items",[])
+if events:
+    compromissos = "<br>".join(
+        f"{e['start'].get('dateTime',e['start'].get('date')).split('T')[-1][:5]} – {e.get('summary','Sem título')}"
+        for e in events
     )
-    filtro = resp.json().get("state", "")
-    limpeza_text = "Necessário" if filtro=="on" else "OK"
-except Exception as e:
-    limpeza_text = f"Erro HA filtro: {e}"
+else:
+    compromissos = "Nenhum"
 
-# --- 6) Bandeira Tarifária ANEEL ---
-try:
-    bandeira_text = fetch_bandeira()
-except Exception as e:
-    bandeira_text = f"Erro bandeira: {e}"
+# ─── GERAÇÃO DO HTML ────────────────────────────────────────────────────────
+def render_buttons(lst):
+    return "\n".join(
+        f"<button onclick=\"toggleEntity('{eid}')\">"
+        f"<img src=\"assets/icones/{icon}\" alt=\"{label}\"><span>{label}</span>"
+        "</button>"
+        for label,eid,icon in lst
+    )
 
-# --- 7) Agenda via Google Calendar ---
-compromissos = "Nenhum"
-try:
-    # salva temporariamente o JSON das credenciais
-    with open("service_account.json", "w", encoding="utf-8") as f:
-        f.write(CREDENTIALS_JSON)
-
-    SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
-    creds = Credentials.from_service_account_file("service_account.json", scopes=SCOPES)
-    service = build("calendar", "v3", credentials=creds)
-
-    time_min = now.isoformat() + "Z"
-    time_max = now.replace(hour=23, minute=59, second=59).isoformat() + "Z"
-
-    events = service.events().list(
-        calendarId=CALENDAR_ID,
-        timeMin=time_min,
-        timeMax=time_max,
-        singleEvents=True,
-        orderBy="startTime"
-    ).execute().get("items", [])
-
-    if events:
-        lines = []
-        for ev in events:
-            start = ev["start"].get("dateTime", ev["start"].get("date"))
-            hora = start.split("T")[-1][:5] if "T" in start else start
-            lines.append(f"{hora} – {ev.get('summary','Sem título')}")
-        compromissos = "<br>".join(lines)
-except Exception as e:
-    compromissos = f"Erro agenda: {e}"
-
-# --- 8) Montagem do HTML final ---
 html = f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -104,43 +132,87 @@ html = f"""<!DOCTYPE html>
   <title>Painel Quarto — {data_hoje} {hora_hoje}</title>
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <style>
-    body {{ margin:0; background:#000; color:#0F0; font-family:'VT323',monospace; }}
-    .outer {{ border:2px solid #0A0; max-width:700px; margin:10px auto; padding:10px; }}
-    .section {{ border:1px solid #0A0; padding:10px; margin-top:10px; }}
-    .section h3 {{ margin:0 0 5px; border-bottom:1px dashed #0A0; text-transform:uppercase; opacity:0.8; }}
-    .section p {{ margin:5px 0; }}
+    body {{margin:0;background:#000;color:#0f0;font-family:'VT323',monospace;}}
+    .outer {{border:2px solid #0f0;max-width:700px;margin:10px auto;padding:10px;}}
+    .section {{border:1px solid #0f0;margin-top:10px;padding:10px;}}
+    .section h3 {{margin:0 0 5px;text-transform:uppercase;border-bottom:1px dashed #0f0;padding-bottom:5px;}}
+    .grid {{display:flex;flex-wrap:wrap;gap:8px;}}
+    button {{background:#000;border:1px solid #0f0;color:#0f0;padding:8px;cursor:pointer;}}
+    button img {{width:24px;height:24px;display:block;margin:0 auto 4px;filter:invert(100%);}}
+    button span {{font-size:0.75em;display:block;text-align:center;}}
+    .info p {{margin:4px 0;}}
   </style>
 </head>
 <body>
   <div class="outer">
     <div class="section">
+      <h3>Luzes</h3>
+      <div class="grid">
+        {render_buttons(BUTTONS_LIGHTS)}
+      </div>
+    </div>
+    <div class="section">
+      <h3>Dispositivos</h3>
+      <div class="grid">
+        {render_buttons(BUTTONS_DEVICES)}
+      </div>
+    </div>
+    <div class="section">
+      <h3>Cenas</h3>
+      <div class="grid">
+        {render_buttons(BUTTONS_SCENES)}
+      </div>
+    </div>
+    <div class="section" id="agenda">
       <h3>Agenda</h3>
-      <p>Data: {data_hoje}</p>
-      <p>Hora: {hora_hoje}</p>
+      <p>Data/Hora: <span id="dt">{data_hoje} {hora_hoje}</span></p>
       <p>Feriado: {feriado_text}</p>
       <p>Compromissos:<br>{compromissos}</p>
     </div>
     <div class="section">
       <h3>Tempo</h3>
-      <p>{clima_atual}</p>
+      <p>{requests.get("https://wttr.in/Sao+Paulo?format=%c+%C+%t+Humidity+%h&lang=pt&m").text}</p>
     </div>
     <div class="section">
       <h3>Sistema</h3>
-      <p>Internet: {internet_text}</p>
-      <p>Limpeza: {limpeza_text}</p>
-      <p>Bandeira: {bandeira_text}</p>
+      <div class="info">
+        <p>Velocidade da Internet: {internet_text}</p>
+        <p>Limpeza dos Filtros do Ar‑condicionado: {limpeza_text}</p>
+        <p>⚠ Bandeira Tarifária: {bandeira_text}</p>
+        <p>Quarto: {clima_quarto}</p>
+      </div>
     </div>
   </div>
+
+  <script>
+    const HA_URL   = "{HA_URL}";
+    const HA_TOKEN = "{HA_TOKEN}";
+
+    function toggleEntity(entity) {{
+      fetch(`${{HA_URL}}/api/services/homeassistant/toggle`, {{
+        method: "POST",
+        headers: {{
+          "Authorization": `Bearer ${{HA_TOKEN}}`,
+          "Content-Type": "application/json"
+        }},
+        body: JSON.stringify({{entity_id: entity}})
+      }});
+    }}
+
+    function atualizaDateTime() {{
+      const now = new Date();
+      const dt  = now.toLocaleDateString("pt-BR",{{day:"2-digit",month:"2-digit",year:"numeric"}}) 
+                  + " " 
+                  + now.toLocaleTimeString("pt-BR",{{hour:"2-digit",minute:"2-digit"}});
+      document.getElementById("dt").innerText = dt;
+    }}
+    setInterval(atualizaDateTime,60000);
+    document.addEventListener("DOMContentLoaded",atualizaDateTime);
+  </script>
 </body>
 </html>
 """
 
-# DEBUG: mostra no console do Actions
-print("=== HTML GERADO ===")
-print(html)
-print("===================")
-
-# --- 9) Grava no docs/index.html ---
 os.makedirs("docs", exist_ok=True)
-with open("docs/index.html", "w", encoding="utf-8") as f:
+with open("docs/index.html","w",encoding="utf-8") as f:
     f.write(html)
