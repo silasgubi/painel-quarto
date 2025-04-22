@@ -1,3 +1,17 @@
+# Definição de exemplo para a variável 'buttons'
+buttons = {
+    "Luzes": [
+        {"webhook": "light1", "icone": "light1.png", "label": "Light 1"},
+        {"webhook": "light2", "icone": "light2.png", "label": "Light 2"}
+    ],
+    "Dispositivos": [
+        {"webhook": "device1", "icone": "device1.png", "label": "Device 1"}
+    ],
+    "Cenas": [
+        {"webhook": "scene1", "icone": "scene1.png", "label": "Scene 1"}
+    ]
+}
+
 html = '''<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -77,8 +91,8 @@ cenas_buttons = ''.join(
 
 # Substituir as variáveis no HTML
 html = html.format(
-    NABU_BASE=NABU_BASE,
-    data_hora=data_hora,
+    NABU_BASE="http://example.com",  # Substitua pelo valor correto
+    data_hora="2025-04-22 20:55:00",  # Substitua pelo valor correto
     luzes_buttons=luzes_buttons,
     dispositivos_buttons=dispositivos_buttons,
     cenas_buttons=cenas_buttons
