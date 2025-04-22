@@ -1,4 +1,4 @@
-Nome;ID da Entidade (no HA);ID do Webhook;Secrets no Github;Atributo (no HA);Tipo;Ação do Webhook;Seção;Efeitos Sonoros;Icone;Observações
+label;ID da Entidade (no HA);webhook;Secrets no Github;Atributo (no HA);Tipo;Ação do Webhook;seção;Efeitos Sonoros;icone;Observações
 Quarto;light.sonoff_a4400262ed;-CypOVrETUPzU3j597Zv_Zt5A;webhook_luz_quarto;-;light;toggle;Luzes;on.mp3;luz_on.svg;
 Abajur 1;switch.sonoff_1000da054f;-MFVOA3AtnRp1jXwKo1OC9OHG;webhook_abajur_1;-;switch;toggle;Luzes;on.mp3;abajur_on.svg;
 Abajur 2;switch.sonoff_1001e1e063;-ABK97nz2L99Ii7UEbruta9Qv;webhook_abajur_2;-;switch;toggle;Luzes;on.mp3;abajur_on.svg;
