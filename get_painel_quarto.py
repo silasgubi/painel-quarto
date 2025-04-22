@@ -4,12 +4,10 @@ import speedtest
 from datetime import datetime
 import holidays
 from bandeira import fetch_bandeira
-
-# Google Calendar
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
-# Configuração
+# Configurações obtidas do GitHub Secrets
 HA_URL = os.getenv("HA_URL")
 HA_TOKEN = os.getenv("HA_TOKEN")
 calendar_id = os.getenv("CALENDAR_ID")
@@ -20,14 +18,17 @@ now = datetime.now()
 data_hoje = now.strftime('%d/%m/%Y')
 hora_hoje = now.strftime('%H:%M')
 
+# Feriados (Brasil - SP)
 br_holidays = holidays.Brazil(prov='SP')
 feriado_hoje = br_holidays.get(now.date())
 feriado_text = feriado_hoje if feriado_hoje else 'Nenhum'
 
-# Clima atual
-clima_atual = requests.get("https://wttr.in/Sao+Paulo?format=%c+%C+%t+Humidity+%h&lang=pt&m").text
+# Clima atual (São Paulo)
+clima_atual = requests.get(
+    "https://wttr.in/Sao+Paulo?format=%c+%C+%t+Humidity+%h&lang=pt&m"
+).text
 
-# Velocidade Internet
+# Velocidade da Internet
 try:
     st = speedtest.Speedtest()
     down = int(st.download() / 1_000_000)
@@ -37,16 +38,19 @@ except:
     internet_text = 'Indisponível'
 
 # Filtro Ar-condicionado
-filtro = requests.get(
-    f"{HA_URL}/api/states/binary_sensor.quarto_filter_clean_required",
-    headers={"Authorization": f"Bearer {HA_TOKEN}", "Content-Type": "application/json"}
-).json()
-limpeza_text = "Necessário" if filtro['state'] == "on" else "OK"
+try:
+    filtro = requests.get(
+        f"{HA_URL}/api/states/binary_sensor.quarto_filter_clean_required",
+        headers={"Authorization": f"Bearer {HA_TOKEN}"}
+    ).json()
+    limpeza_text = "Necessário" if filtro['state'] == "on" else "OK"
+except:
+    limpeza_text = 'Indisponível'
 
-# Bandeira Tarifária
+# Bandeira Tarifária ANEEL
 bandeira_text = fetch_bandeira()
 
-# Agenda
+# Agenda (Google Calendar)
 SCOPES = ['https://www.googleapis.com/auth/calendar.readonly']
 with open('service_account.json', 'w', encoding='utf-8') as f:
     f.write(credentials_json)
@@ -55,12 +59,17 @@ service = build('calendar', 'v3', credentials=creds)
 time_min = now.isoformat() + 'Z'
 time_max = datetime(now.year, now.month, now.day, 23, 59, 59).isoformat() + 'Z'
 events = service.events().list(
-    calendarId=calendar_id, timeMin=time_min, timeMax=time_max,
-    singleEvents=True, orderBy='startTime'
+    calendarId=calendar_id,
+    timeMin=time_min,
+    timeMax=time_max,
+    singleEvents=True,
+    orderBy='startTime'
 ).execute().get('items', [])
-compromissos = '<br>'.join([f"{e['start'].get('dateTime', e['start'].get('date')).split('T')[-1][:5]} - {e['summary']}" for e in events]) or 'Nenhum'
+compromissos = '<br>'.join([
+    f"{e['start'].get('dateTime', e['start'].get('date')).split('T')[-1][:5]} - {e['summary']}" for e in events
+]) or 'Nenhum'
 
-# HTML final
+# HTML Final
 html = f"""
 <!DOCTYPE html>
 <html>
@@ -98,5 +107,6 @@ html = f"""
 </html>
 """
 
+# Salva o HTML final
 with open('docs/index.html', 'w', encoding='utf-8') as f:
     f.write(html)
