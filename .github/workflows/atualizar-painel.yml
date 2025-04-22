@@ -5,6 +5,9 @@ on:
     - cron: '0 * * * *'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,7 +26,6 @@ jobs:
       WEBHOOK_AR_CONDICIONADO: ${{ secrets.WEBHOOK_AR_CONDICIONADO }}
       WEBHOOK_PROJETOR:        ${{ secrets.WEBHOOK_PROJETOR }}
       WEBHOOK_IPAD:            ${{ secrets.WEBHOOK_IPAD }}
-      # … adicione os demais WEBHOOK_* conforme sua planilha como repository secrets
 
     steps:
       - name: Checkout repository
