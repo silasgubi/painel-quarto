@@ -124,7 +124,7 @@ html = f'''<!DOCTYPE html>
     <div class="section">
       <h3>Luzes</h3>
       <div class="grid">
-        {''.join(
+        {"".join(
             f'<div class="btn" onclick="toggle(\'{b["webhook"]}\')">'
             f'<img src="assets/icones/{b["icone"]}"><br>'
             f'{b["label"]}</div>'
@@ -137,7 +137,7 @@ html = f'''<!DOCTYPE html>
     <div class="section">
       <h3>Dispositivos</h3>
       <div class="grid">
-        {''.join(
+        {"".join(
             f'<div class="btn" onclick="toggle(\'{b["webhook"]}\')">'
             f'<img src="assets/icones/{b["icone"]}"><br>'
             f'{b["label"]}</div>'
@@ -150,7 +150,7 @@ html = f'''<!DOCTYPE html>
     <div class="section">
       <h3>Cenas</h3>
       <div class="grid">
-        {''.join(
+        {"".join(
             f'<div class="btn" onclick="toggle(\'{b["webhook"]}\')">'
             f'<img src="assets/icones/{b["icone"]}"><br>'
             f'{b["label"]}</div>'
