@@ -9,22 +9,22 @@ from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
 # ─── CONFIGURAÇÃO VIA ENV VARS ────────────────────────────────────────────
-HA_URL      = os.getenv("HA_URL").rstrip("/")
-HA_TOKEN    = os.getenv("HA_TOKEN")
-CAL_ID      = os.getenv("CALENDAR_ID")
-CREDS_JSON  = os.getenv("GOOGLE_CREDENTIALS")
-NABU_BASE   = os.getenv("NABU_URL").rstrip("/")
+HA_URL     = os.getenv("HA_URL").rstrip("/")
+HA_TOKEN   = os.getenv("HA_TOKEN")
+CAL_ID     = os.getenv("CALENDAR_ID")
+CREDS_JSON = os.getenv("GOOGLE_CREDENTIALS")
+NABU_BASE  = os.getenv("NABU_URL").rstrip("/")
 
 # ─── LÊ A PLANILHA DE BOTÕES (CSV LATIN-1) ─────────────────────────────────
 buttons = {}
 with open("planilha_quarto.csv", encoding="latin-1", newline="") as f:
     reader = csv.DictReader(f)
     for row in reader:
-        sec = row["seção"].strip()            # "Luzes", "Dispositivos" ou "Cenas"
+        sec = row["seção"].strip()  # deve ser exatamente "Luzes", "Dispositivos" ou "Cenas"
         buttons.setdefault(sec, []).append({
             "label":   row["label"].strip(),
-            "icone":   row["icone"].strip(), # nome do arquivo em assets/icones/
-            "webhook": row["webhook"].strip()
+            "icone":   row["icone"].strip(),   # ex: luz_quarto.svg
+            "webhook": row["webhook"].strip()  # ex: WEBHOOK_QUARTO
         })
 
 # ─── DATA, HORA E FERIADOS ─────────────────────────────────────────────────
@@ -37,11 +37,7 @@ feriado   = br.get(now.date()) or "Nenhum"
 try:
     resp = requests.get(
         f"{HA_URL}/api/states/climate.quarto",
-        headers={
-            "Authorization": f"Bearer {HA_TOKEN}",
-            "Content-Type": "application/json"
-        },
-        timeout=10
+        headers={"Authorization": f"Bearer {HA_TOKEN}"}, timeout=10
     ).json()
     temp = resp.get("attributes", {}).get("current_temperature", "—")
     hum  = resp.get("attributes", {}).get("current_humidity", "—")
@@ -54,30 +50,32 @@ try:
     st   = speedtest.Speedtest()
     st.get_best_server()
     down = int(st.download() / 1_000_000)
-    up   = int(st.upload()   / 1_000_000)
+    up   = int(st.upload() / 1_000_000)
     internet_text = f"{down} ↓ / {up} ↑"
 except:
     internet_text = "Indisponível"
 
 # ─── FILTRO DO AR-CONDICIONADO ─────────────────────────────────────────────
 try:
-    filtro = requests.get(
+    fr = requests.get(
         f"{HA_URL}/api/states/binary_sensor.quarto_filter_clean_required",
-        headers={"Authorization": f"Bearer {HA_TOKEN}"},
-        timeout=5
+        headers={"Authorization": f"Bearer {HA_TOKEN}"}, timeout=5
     ).json().get("state", "off")
-    limpeza_text = "Necessário" if filtro == "on" else "OK"
+    limpeza_text = "Necessário" if fr == "on" else "OK"
 except:
     limpeza_text = "—"
 
 # ─── BANDEIRA TARIFÁRIA ────────────────────────────────────────────────────
 bandeira_text = fetch_bandeira()
 
-# ─── AGENDA GOOGLE CALENDAR ────────────────────────────────────────────────
-# gera service
+# ─── AGENDA VIA GOOGLE CALENDAR ────────────────────────────────────────────
+# Grava temporariamente credenciais e inicializa o client
 with open("service_account.json", "w", encoding="utf-8") as f:
     f.write(CREDS_JSON)
-creds   = Credentials.from_service_account_file("service_account.json", scopes=["https://www.googleapis.com/auth/calendar.readonly"])
+creds = Credentials.from_service_account_file(
+    "service_account.json",
+    scopes=["https://www.googleapis.com/auth/calendar.readonly"]
+)
 service = build("calendar", "v3", credentials=creds)
 
 start = now.isoformat() + "Z"
@@ -89,14 +87,14 @@ events = service.events().list(
 
 if events:
     compromissos = "<br>".join([
-        f"{(e['start'].get('dateTime') or e['start'].get('date')).split('T')[-1][:5]} – {e.get('summary','Sem título')}"
+        f"{(e['start'].get('dateTime') or e['start'].get('date')).split('T')[-1][:5]} – {e.get('summary','')}"
         for e in events
     ])
 else:
     compromissos = "Nenhum"
 
-# ─── HTML TEMPLATE ────────────────────────────────────────────────────────
-html = f"""<!DOCTYPE html>
+# ─── HTML FINAL (f-string sem backslashes) ──────────────────────────────────
+html = f'''<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -106,13 +104,13 @@ html = f"""<!DOCTYPE html>
     body {{ margin:0;background:#000;color:#0f0;font-family:'VT323',monospace; }}
     .outer {{border:2px solid #0f0;max-width:700px;margin:10px auto;padding:10px;}}
     .section {{border:1px solid #0f0;margin-top:10px;padding:10px;}}
-    .grid {{ display:flex;gap:10px;flex-wrap:wrap; }}
-    .btn {{ border:1px solid #0f0;padding:5px;text-align:center;cursor:pointer; }}
-    .btn img {{ width:32px;height:32px; }}
+    .grid    {{ display:flex; gap:10px; flex-wrap:wrap; }}
+    .btn     {{ border:1px solid #0f0; padding:5px; text-align:center; cursor:pointer; }}
+    .btn img {{ width:32px; height:32px; }}
   </style>
   <script>
     function toggle(wh) {{
-      fetch("{NABU_BASE}/api/webhook/" + wh, {{ method:'POST' }});
+      fetch("{NABU_BASE}/api/webhook/" + wh, {{ method: "POST" }});
     }}
     function atualizaHora() {{
       document.getElementById("dh").innerText = "{data_hora}";
@@ -122,23 +120,42 @@ html = f"""<!DOCTYPE html>
 <body onload="atualizaHora()">
   <div class="outer">
 
-    <!-- LUZES / DISPOSITIVOS / CENAS -->
+    <!-- LUZES -->
     <div class="section">
       <h3>Luzes</h3>
       <div class="grid">
-        {"".join(f"<div class='btn' onclick=\"toggle('{b['webhook']}')\"><img src='assets/icones/{b['icone']}' alt><br>{b['label']}</div>" for b in buttons.get("Luzes", []))}
+        {''.join(
+            f'<div class="btn" onclick="toggle(\'{btn["webhook"]}\')'>  \
+            f'<img src="assets/icones/{btn["icone"]}" alt><br>'      \
+            f'{btn["label"]}</div>'
+            for btn in buttons.get("Luzes", [])
+        )}
       </div>
     </div>
+
+    <!-- DISPOSITIVOS -->
     <div class="section">
       <h3>Dispositivos</h3>
       <div class="grid">
-        {"".join(f"<div class='btn' onclick=\"toggle('{b['webhook']}')\"><img src='assets/icones/{b['icone']}' alt><br>{b['label']}</div>" for b in buttons.get("Dispositivos", []))}
+        {''.join(
+            f'<div class="btn" onclick="toggle(\'{btn["webhook"]}\')'>  \
+            f'<img src="assets/icones/{btn["icone"]}" alt><br>'      \
+            f'{btn["label"]}</div>'
+            for btn in buttons.get("Dispositivos", [])
+        )}
       </div>
     </div>
+
+    <!-- CENAS -->
     <div class="section">
       <h3>Cenas</h3>
       <div class="grid">
-        {"".join(f"<div class='btn' onclick=\"toggle('{b['webhook']}')\"><img src='assets/icones/{b['icone']}' alt><br>{b['label']}</div>" for b in buttons.get("Cenas", []))}
+        {''.join(
+            f'<div class="btn" onclick="toggle(\'{btn["webhook"]}\')'>  \
+            f'<img src="assets/icones/{btn["icone"]}" alt><br>'      \
+            f'{btn["label"]}</div>'
+            for btn in buttons.get("Cenas", [])
+        )}
       </div>
     </div>
 
@@ -167,9 +184,8 @@ html = f"""<!DOCTYPE html>
 
   </div>
 </body>
-</html>
-"""
+</html>'''
 
-# ─── GRAVA index.html NA RAIZ PARA MOVIMENTAR AO docs/ ─────────────────────
+# ─── GRAVA index.html NA RAIZ PARA O workflow movê‑lo ao docs/ ───────────────
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html)
