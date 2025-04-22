@@ -5,206 +5,171 @@ import speedtest
 from datetime import datetime
 import holidays
 from bandeira import fetch_bandeira
-
-# Google Calendar
 from google.oauth2.service_account import Credentials
 from googleapiclient.discovery import build
 
-# Configurações de ambiente
-HA_URL           = os.getenv("HA_URL")
-HA_TOKEN         = os.getenv("HA_TOKEN")
-CALENDAR_ID      = os.getenv("CALENDAR_ID")
-GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS")
+# ─── CONFIGURAÇÃO VIA ENV VARS ────────────────────────────────────────────
+HA_URL      = os.getenv("HA_URL").rstrip("/")
+HA_TOKEN    = os.getenv("HA_TOKEN")
+CAL_ID      = os.getenv("CALENDAR_ID")
+CREDS_JSON  = os.getenv("GOOGLE_CREDENTIALS")
+NABU_BASE   = os.getenv("NABU_URL").rstrip("/")
 
-# Datas e hora atuais
-now        = datetime.now()
-data_hoje  = now.strftime("%d/%m/%Y")
-hora_hoje  = now.strftime("%H:%M")
-
-# Feriados SP
-br_holidays   = holidays.Brazil(prov="SP")
-feriado_hoje  = br_holidays.get(now.date())
-feriado_text  = feriado_hoje if feriado_hoje else "Nenhum"
-
-# Leitura da planilha de botões (encoding corrigido)
-botões = {"Luzes": [], "Dispositivos": [], "Cenas": []}
-with open("planilha_quarto.csv", mode="r", encoding="latin-1", newline="") as f:
+# ─── LÊ A PLANILHA DE BOTÕES (CSV LATIN-1) ─────────────────────────────────
+buttons = {}
+with open("planilha_quarto.csv", encoding="latin-1", newline="") as f:
     reader = csv.DictReader(f)
-    for linha in reader:
-        sec = linha["seção"]              # deve ser exatamente "Luzes", "Dispositivos" ou "Cenas"
-        botões[sec].append({
-            "label": linha["label"],
-            "icon":  linha["icone"],      # ex: assets/icones/luz.svg
-            "webhook_on":  linha["webhook_on"],
-            "webhook_off": linha["webhook_off"]
+    for row in reader:
+        sec = row["seção"].strip()            # "Luzes", "Dispositivos" ou "Cenas"
+        buttons.setdefault(sec, []).append({
+            "label":   row["label"].strip(),
+            "icone":   row["icone"].strip(), # nome do arquivo em assets/icones/
+            "webhook": row["webhook"].strip()
         })
 
-# Clima atual (wttr.in)
-clima_atual = requests.get(
-    "https://wttr.in/Sao+Paulo?format=%c+%C+%t+Humidity+%h&lang=pt&m"
-).text.strip()
+# ─── DATA, HORA E FERIADOS ─────────────────────────────────────────────────
+now       = datetime.now()
+data_hora = now.strftime("%d/%m/%Y %H:%M")
+br        = holidays.Brazil(prov="SP")
+feriado   = br.get(now.date()) or "Nenhum"
 
-# Velocidade de internet
+# ─── CLIMA DO QUARTO ───────────────────────────────────────────────────────
+try:
+    resp = requests.get(
+        f"{HA_URL}/api/states/climate.quarto",
+        headers={
+            "Authorization": f"Bearer {HA_TOKEN}",
+            "Content-Type": "application/json"
+        },
+        timeout=10
+    ).json()
+    temp = resp.get("attributes", {}).get("current_temperature", "—")
+    hum  = resp.get("attributes", {}).get("current_humidity", "—")
+    quarto_text = f"{temp}°C / {hum}%"
+except:
+    quarto_text = "Indisponível"
+
+# ─── VELOCIDADE DE INTERNET ────────────────────────────────────────────────
 try:
     st   = speedtest.Speedtest()
+    st.get_best_server()
     down = int(st.download() / 1_000_000)
     up   = int(st.upload()   / 1_000_000)
     internet_text = f"{down} ↓ / {up} ↑"
 except:
     internet_text = "Indisponível"
 
-# Filtro do ar-condicionado
-resp = requests.get(
-    f"{HA_URL}/api/states/binary_sensor.quarto_filter_clean_required",
-    headers={
-        "Authorization": f"Bearer {HA_TOKEN}",
-        "Content-Type": "application/json"
-    }
-).json()
-limpeza_text = "Necessário" if resp.get("state") == "on" else "OK"
+# ─── FILTRO DO AR-CONDICIONADO ─────────────────────────────────────────────
+try:
+    filtro = requests.get(
+        f"{HA_URL}/api/states/binary_sensor.quarto_filter_clean_required",
+        headers={"Authorization": f"Bearer {HA_TOKEN}"},
+        timeout=5
+    ).json().get("state", "off")
+    limpeza_text = "Necessário" if filtro == "on" else "OK"
+except:
+    limpeza_text = "—"
 
-# Bandeira tarifária
+# ─── BANDEIRA TARIFÁRIA ────────────────────────────────────────────────────
 bandeira_text = fetch_bandeira()
 
-# Agenda Google Calendar
-SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
-# grava temporariamente credenciais
+# ─── AGENDA GOOGLE CALENDAR ────────────────────────────────────────────────
+# gera service
 with open("service_account.json", "w", encoding="utf-8") as f:
-    f.write(GOOGLE_CREDENTIALS)
-creds   = Credentials.from_service_account_file("service_account.json", scopes=SCOPES)
+    f.write(CREDS_JSON)
+creds   = Credentials.from_service_account_file("service_account.json", scopes=["https://www.googleapis.com/auth/calendar.readonly"])
 service = build("calendar", "v3", credentials=creds)
-time_min = now.isoformat() + "Z"
-time_max = datetime(now.year, now.month, now.day, 23, 59, 59).isoformat() + "Z"
 
+start = now.isoformat() + "Z"
+end   = datetime(now.year, now.month, now.day, 23,59,59).isoformat() + "Z"
 events = service.events().list(
-    calendarId=CALENDAR_ID,
-    timeMin=time_min, timeMax=time_max,
+    calendarId=CAL_ID, timeMin=start, timeMax=end,
     singleEvents=True, orderBy="startTime"
 ).execute().get("items", [])
 
 if events:
-    compromissos = "<br>".join(
-        f"{e['start'].get('dateTime', e['start'].get('date')).split('T')[-1][:5]} – {e.get('summary','Sem título')}"
+    compromissos = "<br>".join([
+        f"{(e['start'].get('dateTime') or e['start'].get('date')).split('T')[-1][:5]} – {e.get('summary','Sem título')}"
         for e in events
-    )
+    ])
 else:
     compromissos = "Nenhum"
 
-# Montagem do HTML
+# ─── HTML TEMPLATE ────────────────────────────────────────────────────────
 html = f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Quarto</title>
+  <title>Painel Quarto</title>
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <style>
-    body {{ margin:0; background:#000; color:#0f0; font-family:'VT323',monospace; }}
-    .outer {{ border:2px solid #0f0; max-width:700px; margin:10px auto; padding:10px; }}
-    .section {{ border:1px solid #0f0; margin-top:10px; padding:10px; }}
-    .grid {{ display:flex; gap:10px; flex-wrap:wrap; }}
-    .btn {{
-      width:60px; height:60px; border:1px solid #0f0; display:flex;
-      flex-direction:column; align-items:center; justify-content:center;
-      cursor:pointer;
-    }}
-    .btn img {{ width:30px; height:30px; filter:invert(100%); }}
-    .btn span {{ font-size:0.7em; margin-top:2px; }}
-    .info p {{ margin:4px 0; }}
+    body {{ margin:0;background:#000;color:#0f0;font-family:'VT323',monospace; }}
+    .outer {{border:2px solid #0f0;max-width:700px;margin:10px auto;padding:10px;}}
+    .section {{border:1px solid #0f0;margin-top:10px;padding:10px;}}
+    .grid {{ display:flex;gap:10px;flex-wrap:wrap; }}
+    .btn {{ border:1px solid #0f0;padding:5px;text-align:center;cursor:pointer; }}
+    .btn img {{ width:32px;height:32px; }}
   </style>
   <script>
-    function toggle(onUrl, offUrl) {{
-      fetch(onUrl).catch(_=>fetch(offUrl));
+    function toggle(wh) {{
+      fetch("{NABU_BASE}/api/webhook/" + wh, {{ method:'POST' }});
+    }}
+    function atualizaHora() {{
+      document.getElementById("dh").innerText = "{data_hora}";
     }}
   </script>
 </head>
-<body>
+<body onload="atualizaHora()">
   <div class="outer">
-    <!-- Luzes -->
-    <div class="section"><h3>Luzes</h3>
-      <div class="grid">"""
-for b in botões["Luzes"]:
-    html += f"""
-        <div class="btn" onclick="fetch('{b['webhook_on']}')">
-          <img src="{b['icon']}" alt="">
-          <span>{b['label']}</span>
-        </div>"""
-    html += f"""
-        <div class="btn" onclick="fetch('{b['webhook_off']}')">
-          <img src="{b['icon'].replace('.svg','_off.svg')}" alt="">
-          <span>{b['label']}</span>
-        </div>"""
-html += """
-      </div>
-    </div>"""
 
-# Dispositivos
-html += """
-    <div class="section"><h3>Dispositivos</h3>
-      <div class="grid">"""
-for b in botões["Dispositivos"]:
-    html += f"""
-        <div class="btn" onclick="fetch('{b['webhook_on']}')">
-          <img src="{b['icon']}" alt="">
-          <span>{b['label']}</span>
-        </div>"""
-    html += f"""
-        <div class="btn" onclick="fetch('{b['webhook_off']}')">
-          <img src="{b['icon'].replace('.svg','_off.svg')}" alt="">
-          <span>{b['label']}</span>
-        </div>"""
-html += """
+    <!-- LUZES / DISPOSITIVOS / CENAS -->
+    <div class="section">
+      <h3>Luzes</h3>
+      <div class="grid">
+        {"".join(f"<div class='btn' onclick=\"toggle('{b['webhook']}')\"><img src='assets/icones/{b['icone']}' alt><br>{b['label']}</div>" for b in buttons.get("Luzes", []))}
       </div>
-    </div>"""
-
-# Cenas
-html += """
-    <div class="section"><h3>Cenas</h3>
-      <div class="grid">"""
-for b in botões["Cenas"]:
-    html += f"""
-        <div class="btn" onclick="fetch('{b['webhook_on']}')">
-          <img src="{b['icon']}" alt="">
-          <span>{b['label']}</span>
-        </div>"""
-html += """
+    </div>
+    <div class="section">
+      <h3>Dispositivos</h3>
+      <div class="grid">
+        {"".join(f"<div class='btn' onclick=\"toggle('{b['webhook']}')\"><img src='assets/icones/{b['icone']}' alt><br>{b['label']}</div>" for b in buttons.get("Dispositivos", []))}
       </div>
-    </div>"""
+    </div>
+    <div class="section">
+      <h3>Cenas</h3>
+      <div class="grid">
+        {"".join(f"<div class='btn' onclick=\"toggle('{b['webhook']}')\"><img src='assets/icones/{b['icone']}' alt><br>{b['label']}</div>" for b in buttons.get("Cenas", []))}
+      </div>
+    </div>
 
-# Agenda
-html += f"""
+    <!-- AGENDA -->
     <div class="section">
       <h3>Agenda</h3>
-      <p>Data/Hora: {data_hoje} {hora_hoje}</p>
-      <p>Feriado: {feriado_text}</p>
+      <p id="dh">Data/Hora inválida</p>
+      <p>Feriado: {feriado}</p>
       <p>Compromissos:<br>{compromissos}</p>
-    </div>"""
+    </div>
 
-# Tempo
-html += f"""
+    <!-- TEMPO (externo) -->
     <div class="section">
       <h3>Tempo</h3>
-      <p>{clima_atual}</p>
-    </div>"""
+      <p>☁️ {requests.get("https://wttr.in/Sao+Paulo?format=%c+%C+%t+Humidity+%h&lang=pt&m").text}</p>
+    </div>
 
-# Sistema
-html += f"""
+    <!-- SISTEMA -->
     <div class="section">
       <h3>Sistema</h3>
-      <div class="info">
-        <p>Velocidade da Internet: {internet_text}</p>
-        <p>Limpeza dos Filtros do Ar-condicionado: {limpeza_text}</p>
-        <p>⚠ Bandeira Tarifária: {bandeira_text}</p>
-        <p>Quarto: {fetch_bandeira.__module__}</p>
-      </div>
-    </div>"""
+      <p>Velocidade da Internet: {internet_text}</p>
+      <p>Limpeza dos Filtros do Ar-condicionado: {limpeza_text}</p>
+      <p>⚠ Bandeira Tarifária: {bandeira_text}</p>
+      <p>Quarto: {quarto_text}</p>
+    </div>
 
-html += """
   </div>
 </body>
 </html>
 """
 
-# Grava no docs/index.html
-os.makedirs("docs", exist_ok=True)
-with open("docs/index.html", "w", encoding="utf-8") as f:
+# ─── GRAVA index.html NA RAIZ PARA MOVIMENTAR AO docs/ ─────────────────────
+with open("index.html", "w", encoding="utf-8") as f:
     f.write(html)
