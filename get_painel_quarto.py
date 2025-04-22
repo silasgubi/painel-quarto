@@ -55,7 +55,7 @@ def get_clima_quarto():
             },
             timeout=5
         ).json()
-        t = resp.get("state", "—")
+        t = resp.get("attributes", {}).get("current_temperature", "—")
         h = resp.get("attributes", {}).get("current_humidity", "—")
         return f"{t}°C / {h}%"
     except:
