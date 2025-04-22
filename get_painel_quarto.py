@@ -16,21 +16,21 @@ GOOGLE_CREDS = os.getenv("GOOGLE_CREDENTIALS")
 
 # ─── BOTÕES (substitua pelos seus labels, entity_ids e nome do arquivo de ícone) ──
 BUTTONS_LIGHTS = [
-    ("Quarto",           "light.sonoff_1000ea5c7af",      "luz.svg"),
-    ("Abajur 1",         "light.sonoff_1000ec2a21",      "abajur.svg"),
-    ("Abajur 2",         "light.sonoff_1000ef8557",      "abajur.svg"),
-    ("Cama",             "light.sonoff_1000e52367",      "cama.svg"),
-    ("Banheiro Suite",   "light.sonoff_1000e5465f",      "banheiro.svg"),
+    ("Quarto",           "light.sonoff_1000ea5c7af",     "luz_on.svg"),
+    ("Abajur 1",         "light.sonoff_1000ec2a21",      "abajur_on.svg"),
+    ("Abajur 2",         "light.sonoff_1000ef8557",      "abajur_on.svg"),
+    ("Cama",             "light.sonoff_1000e52367",      "cama_on.svg"),
+    ("Banheiro Suite",   "light.sonoff_1000e5465f",      "banheiro_on.svg"),
 ]
 
 BUTTONS_DEVICES = [
-    ("Ar‑condicionado",  "climate.quarto",               "ar.svg"),
-    ("Projetor",         "switch.sonoff_1000bdffc5",     "projetor.svg"),
-    ("iPad",             "switch.sonoff_1000ef1234",     "ipad.svg"),
+    ("Ar‑condicionado",  "climate.quarto",               "ar_on.svg"),
+    ("Projetor",         "switch.sonoff_1000bdffc5",     "projetor_on.svg"),
+    ("iPad",             "switch.sonoff_1000ef1234",     "usb_on.svg"),
 ]
 
 BUTTONS_SCENES = [
-    ("Vermelhas",        "scene.luzes_vermelhas",        "vermelhas.svg"),
+    ("Vermelhas",        "scene.luzes_vermelhas",        "luzes_vermelhas.svg"),
     ("Grafite",          "scene.luzes_grafite",          "grafite.svg"),
     ("Aconchegante",     "scene.luzes_aconchegantes",    "aconchegante.svg"),
     ("Banheiro",         "scene.luzes_banheiro",         "banheiro.svg"),
