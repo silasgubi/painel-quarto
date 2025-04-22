@@ -1,6 +1,3 @@
-#!/usr/bin/env python3
-# get_painel_quarto.py
-
 import os
 import csv
 import requests
@@ -9,180 +6,205 @@ from datetime import datetime
 import holidays
 from bandeira import fetch_bandeira
 
-# ─── 1. CONFIGURAÇÃO DE AMBIENTE ──────────────────────────────────────────
-HA_URL        = os.getenv("HA_URL")         # ex: https://seu-endereco.ui.nabu.casa
-HA_TOKEN      = os.getenv("HA_TOKEN")       # usado APENAS aqui, não vai para o HTML
-CALENDAR_ID   = os.getenv("CALENDAR_ID")
-GOOGLE_CRED   = os.getenv("GOOGLE_CREDENTIALS")  # JSON do service account
-PLANILHA_PATH = "planilha_quarto.csv"       # certifique-se de comitar esse CSV
+# Google Calendar
+from google.oauth2.service_account import Credentials
+from googleapiclient.discovery import build
 
-# ─── 2. DADOS FIXOS ───────────────────────────────────────────────────────
-now         = datetime.now()
-data_hora   = now.strftime("%d/%m/%Y %H:%M")
-data_str    = now.strftime("%d/%m/%Y")
-hora_str    = now.strftime("%H:%M")
+# Configurações de ambiente
+HA_URL           = os.getenv("HA_URL")
+HA_TOKEN         = os.getenv("HA_TOKEN")
+CALENDAR_ID      = os.getenv("CALENDAR_ID")
+GOOGLE_CREDENTIALS = os.getenv("GOOGLE_CREDENTIALS")
+
+# Datas e hora atuais
+now        = datetime.now()
+data_hoje  = now.strftime("%d/%m/%Y")
+hora_hoje  = now.strftime("%H:%M")
 
 # Feriados SP
-br_holidays = holidays.Brazil(prov="SP")
-feriado     = br_holidays.get(now.date()) or "Nenhum"
+br_holidays   = holidays.Brazil(prov="SP")
+feriado_hoje  = br_holidays.get(now.date())
+feriado_text  = feriado_hoje if feriado_hoje else "Nenhum"
 
-# ─── 3. LEITURA DA PLANILHA E MONTAGEM DOS BOTÕES ────────────────────────
-# Estrutura: { "Luzes":[{...}], "Dispositivos":[...], "Cenas":[...] }
-botoes = {"Luzes": [], "Dispositivos": [], "Cenas": []}
-
-with open(PLANILHA_PATH, encoding="utf-8") as fp:
-    reader = csv.DictReader(fp, delimiter=";")
+# Leitura da planilha de botões (encoding corrigido)
+botões = {"Luzes": [], "Dispositivos": [], "Cenas": []}
+with open("planilha_quarto.csv", mode="r", encoding="latin-1", newline="") as f:
+    reader = csv.DictReader(f)
     for linha in reader:
-        sec   = linha["Seção (Ex: Luzes, Cenas)"].strip()
-        nome  = linha["Nome"].strip()
-        secret= linha["Secrets no Github"].strip()
-        icon  = linha["Icone"].strip()
-        # recupera o ID real do webhook a partir do Secret
-        hook_id = os.getenv(secret)
-        if not hook_id:
-            continue  # pula se o Secret não estiver definido
-        url = f"{HA_URL}/api/webhook/{hook_id}"
-        botoes[sec].append({
-            "nome": nome,
-            "icon": icon,
-            "url":  url
+        sec = linha["seção"]              # deve ser exatamente "Luzes", "Dispositivos" ou "Cenas"
+        botões[sec].append({
+            "label": linha["label"],
+            "icon":  linha["icone"],      # ex: assets/icones/luz.svg
+            "webhook_on":  linha["webhook_on"],
+            "webhook_off": linha["webhook_off"]
         })
 
-# ─── 4. CLIMA E UMIDADE DO QUARTO ────────────────────────────────────────
-def get_clima_quarto():
-    try:
-        resp = requests.get(
-            f"{HA_URL}/api/states/climate.quarto",
-            headers={"Authorization":f"Bearer {HA_TOKEN}","Content-Type":"application/json"}
-        ).json()
-        t = resp.get("attributes",{}).get("current_temperature","—")
-        h = resp.get("attributes",{}).get("current_humidity","—")
-        return f"{t}°C / {h}%"
-    except:
-        return "—"
+# Clima atual (wttr.in)
+clima_atual = requests.get(
+    "https://wttr.in/Sao+Paulo?format=%c+%C+%t+Humidity+%h&lang=pt&m"
+).text.strip()
 
-clima_quarto = get_clima_quarto()
-
-# ─── 5. VELOCIDADE DE INTERNET ────────────────────────────────────────────
+# Velocidade de internet
 try:
-    st = speedtest.Speedtest(); st.get_best_server()
-    down = int(st.download()/1e6); up = int(st.upload()/1e6)
+    st   = speedtest.Speedtest()
+    down = int(st.download() / 1_000_000)
+    up   = int(st.upload()   / 1_000_000)
     internet_text = f"{down} ↓ / {up} ↑"
 except:
-    internet_text = "Offline"
+    internet_text = "Indisponível"
 
-# ─── 6. FILTRO AR — VERIFICAÇÃO ──────────────────────────────────────────
-try:
-    resp = requests.get(
-        f"{HA_URL}/api/states/binary_sensor.quarto_filter_clean_required",
-        headers={"Authorization":f"Bearer {HA_TOKEN}","Content-Type":"application/json"}
-    ).json()
-    limpeza_text = "Necessário" if resp.get("state")== "on" else "OK"
-except:
-    limpeza_text = "—"
+# Filtro do ar-condicionado
+resp = requests.get(
+    f"{HA_URL}/api/states/binary_sensor.quarto_filter_clean_required",
+    headers={
+        "Authorization": f"Bearer {HA_TOKEN}",
+        "Content-Type": "application/json"
+    }
+).json()
+limpeza_text = "Necessário" if resp.get("state") == "on" else "OK"
 
-# ─── 7. BANDEIRA TARIFÁRIA ────────────────────────────────────────────────
+# Bandeira tarifária
 bandeira_text = fetch_bandeira()
 
-# ─── 8. AGENDA (Google Calendar) ────────────────────────────────────────
-from google.oauth2.service_account import Credentials
-from googleapiclient.discovery      import build
+# Agenda Google Calendar
+SCOPES = ["https://www.googleapis.com/auth/calendar.readonly"]
+# grava temporariamente credenciais
+with open("service_account.json", "w", encoding="utf-8") as f:
+    f.write(GOOGLE_CREDENTIALS)
+creds   = Credentials.from_service_account_file("service_account.json", scopes=SCOPES)
+service = build("calendar", "v3", credentials=creds)
+time_min = now.isoformat() + "Z"
+time_max = datetime(now.year, now.month, now.day, 23, 59, 59).isoformat() + "Z"
 
-# salva temporário JSON de credenciais
-with open("service_account.json","w",encoding="utf-8") as f:
-    f.write(GOOGLE_CRED)
-creds   = Credentials.from_service_account_file("service_account.json", scopes=["https://www.googleapis.com/auth/calendar.readonly"])
-service = build("calendar","v3",credentials=creds)
-time_min = now.isoformat()+"Z"
-time_max = datetime(now.year,now.month,now.day,23,59,59).isoformat()+"Z"
 events = service.events().list(
     calendarId=CALENDAR_ID,
     timeMin=time_min, timeMax=time_max,
     singleEvents=True, orderBy="startTime"
-).execute().get("items",[])
-compromissos = events and "<br>".join(
-    f"{e['start'].get('dateTime','').split('T')[-1][:5]} – {e.get('summary','')}"
-    for e in events
-) or "Nenhum"
+).execute().get("items", [])
 
-# ─── 9. MONTA O HTML ────────────────────────────────────────────────────
+if events:
+    compromissos = "<br>".join(
+        f"{e['start'].get('dateTime', e['start'].get('date')).split('T')[-1][:5]} – {e.get('summary','Sem título')}"
+        for e in events
+    )
+else:
+    compromissos = "Nenhum"
+
+# Montagem do HTML
 html = f"""<!DOCTYPE html>
-<html lang='pt-BR'>
-<head><meta charset='UTF-8'><title>Quarto</title>
-<link href='https://fonts.googleapis.com/css2?family=VT323&display=swap' rel='stylesheet'>
-<style>
-  body {{ margin:0;background:#000;color:#0f0;font-family:'VT323',monospace; }}
-  .outer {{border:2px solid #0f0;max-width:700px;margin:10px auto;padding:10px;}}
-  .section {{border:1px solid #0f0;margin-top:10px;padding:10px;}}
-  .section h3 {{margin:0 0 5px;text-transform:uppercase;opacity:0.8;}}
-  .grid {{display:flex;gap:8px;flex-wrap:wrap;}}
-  .btn {{border:1px solid #0f0;padding:5px;cursor:pointer;}}
-  .btn img {{width:32px;height:32px;}}
-  .btn span {{display:block;font-size:.8em;text-align:center;}}
-  .info {{margin-top:5px;}}
-</style>
-<script>
-  function openHook(u){{ fetch(u).catch(e=>console.error(e)); }}
-</script>
-</head><body>
-<div class='outer'>
-
-  <!-- LUZES -->
-  <div class='section'><h3>Luzes</h3><div class='grid'>"""
-for b in botoes["Luzes"]:
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Quarto</title>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <style>
+    body {{ margin:0; background:#000; color:#0f0; font-family:'VT323',monospace; }}
+    .outer {{ border:2px solid #0f0; max-width:700px; margin:10px auto; padding:10px; }}
+    .section {{ border:1px solid #0f0; margin-top:10px; padding:10px; }}
+    .grid {{ display:flex; gap:10px; flex-wrap:wrap; }}
+    .btn {{
+      width:60px; height:60px; border:1px solid #0f0; display:flex;
+      flex-direction:column; align-items:center; justify-content:center;
+      cursor:pointer;
+    }}
+    .btn img {{ width:30px; height:30px; filter:invert(100%); }}
+    .btn span {{ font-size:0.7em; margin-top:2px; }}
+    .info p {{ margin:4px 0; }}
+  </style>
+  <script>
+    function toggle(onUrl, offUrl) {{
+      fetch(onUrl).catch(_=>fetch(offUrl));
+    }}
+  </script>
+</head>
+<body>
+  <div class="outer">
+    <!-- Luzes -->
+    <div class="section"><h3>Luzes</h3>
+      <div class="grid">"""
+for b in botões["Luzes"]:
     html += f"""
-    <button class='btn' onclick="openHook('{b['url']}')">
-      <img src='assets/icones/{b['icon']}' alt=''><span>{b['nome']}</span>
-    </button>"""
+        <div class="btn" onclick="fetch('{b['webhook_on']}')">
+          <img src="{b['icon']}" alt="">
+          <span>{b['label']}</span>
+        </div>"""
+    html += f"""
+        <div class="btn" onclick="fetch('{b['webhook_off']}')">
+          <img src="{b['icon'].replace('.svg','_off.svg')}" alt="">
+          <span>{b['label']}</span>
+        </div>"""
 html += """
-  </div></div>
+      </div>
+    </div>"""
 
-  <!-- DISPOSITIVOS -->
-  <div class='section'><h3>Dispositivos</h3><div class='grid'>"""
-for b in botoes["Dispositivos"]:
-    html += f"""
-    <button class='btn' onclick="openHook('{b['url']}')">
-      <img src='assets/icones/{b['icon']}' alt=''><span>{b['nome']}</span>
-    </button>"""
+# Dispositivos
 html += """
-  </div></div>
-
-  <!-- CENAS -->
-  <div class='section'><h3>Cenas</h3><div class='grid'>"""
-for b in botoes["Cenas"]:
+    <div class="section"><h3>Dispositivos</h3>
+      <div class="grid">"""
+for b in botões["Dispositivos"]:
     html += f"""
-    <button class='btn' onclick="openHook('{b['url']}')">
-      <img src='assets/icones/{b['icon']}' alt=''><span>{b['nome']}</span>
-    </button>"""
+        <div class="btn" onclick="fetch('{b['webhook_on']}')">
+          <img src="{b['icon']}" alt="">
+          <span>{b['label']}</span>
+        </div>"""
+    html += f"""
+        <div class="btn" onclick="fetch('{b['webhook_off']}')">
+          <img src="{b['icon'].replace('.svg','_off.svg')}" alt="">
+          <span>{b['label']}</span>
+        </div>"""
+html += """
+      </div>
+    </div>"""
+
+# Cenas
+html += """
+    <div class="section"><h3>Cenas</h3>
+      <div class="grid">"""
+for b in botões["Cenas"]:
+    html += f"""
+        <div class="btn" onclick="fetch('{b['webhook_on']}')">
+          <img src="{b['icon']}" alt="">
+          <span>{b['label']}</span>
+        </div>"""
+html += """
+      </div>
+    </div>"""
+
+# Agenda
 html += f"""
-  </div></div>
+    <div class="section">
+      <h3>Agenda</h3>
+      <p>Data/Hora: {data_hoje} {hora_hoje}</p>
+      <p>Feriado: {feriado_text}</p>
+      <p>Compromissos:<br>{compromissos}</p>
+    </div>"""
 
-  <!-- AGENDA -->
-  <div class='section'><h3>Agenda</h3>
-    <p class='info'><strong>Data/Hora:</strong> {data_hora}</p>
-    <p class='info'><strong>Feriado:</strong> {feriado}</p>
-    <p class='info'><strong>Compromissos:</strong><br>{compromissos}</p>
+# Tempo
+html += f"""
+    <div class="section">
+      <h3>Tempo</h3>
+      <p>{clima_atual}</p>
+    </div>"""
+
+# Sistema
+html += f"""
+    <div class="section">
+      <h3>Sistema</h3>
+      <div class="info">
+        <p>Velocidade da Internet: {internet_text}</p>
+        <p>Limpeza dos Filtros do Ar-condicionado: {limpeza_text}</p>
+        <p>⚠ Bandeira Tarifária: {bandeira_text}</p>
+        <p>Quarto: {fetch_bandeira.__module__}</p>
+      </div>
+    </div>"""
+
+html += """
   </div>
-
-  <!-- TEMPO EXTERNO -->
-  <!-- (já sai do wttr.in, não há botão) -->
-  <div class='section'><h3>Tempo</h3>
-    <p class='info'>{requests.get("https://wttr.in/Sao+Paulo?format=%c+%C+%t+Humidity+%h&lang=pt&m").text}</p>
-  </div>
-
-  <!-- SISTEMA -->
-  <div class='section'><h3>Sistema</h3>
-    <p class='info'><strong>Velocidade da Internet:</strong> {internet_text}</p>
-    <p class='info'><strong>Limpeza dos Filtros do Ar-condicionado:</strong> {limpeza_text}</p>
-    <p class='info'><strong>⚠ Bandeira Tarifária:</strong> {bandeira_text}</p>
-    <p class='info'><strong>Quarto:</strong> {clima_quarto}</p>
-  </div>
-
-</div>
-</body></html>
+</body>
+</html>
 """
 
-# grava no docs para o GitHub Pages
+# Grava no docs/index.html
 os.makedirs("docs", exist_ok=True)
-with open("docs/index.html","w",encoding="utf-8") as f:
+with open("docs/index.html", "w", encoding="utf-8") as f:
     f.write(html)
