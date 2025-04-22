@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import os
-import csv
 import requests
 import speedtest
 from datetime import datetime
@@ -16,17 +15,65 @@ CAL_ID     = os.getenv("CALENDAR_ID")
 CREDS_JSON = os.getenv("GOOGLE_CREDENTIALS")
 NABU_BASE  = os.getenv("NABU_URL").rstrip("/")
 
-# ─── LEITURA DA PLANILHA CSV (latin-1) ─────────────────────────────────────
-buttons = {}
-with open("planilha_quarto.csv", encoding="latin-1", newline="") as f:
-    reader = csv.DictReader(f, delimiter=';')  # Specify semicolon as the delimiter
-    for row in reader:
-        sec = row["seção"].strip()  # "Luzes", "Dispositivos" ou "Cenas"
-        buttons.setdefault(sec, []).append({
-            "label":   row["label"].strip(),
-            "icone":   row["icone"].strip(),
-            "webhook": row["webhook"].strip()
-        })
+# ─── DADOS DA PLANILHA INCLUÍDOS DIRETAMENTE NO CÓDIGO ────────────────────
+buttons = {
+    "Luzes": [
+        {
+            "label": "Quarto",
+            "icone": "luz_on.svg",
+            "webhook": "-CypOVrETUPzU3j597Zv_Zt5A"
+        },
+        {
+            "label": "Abajur 1",
+            "icone": "abajur_on.svg",
+            "webhook": "-MFVOA3AtnRp1jXwKo1OC9OHG"
+        },
+        {
+            "label": "Abajur 2",
+            "icone": "abajur_on.svg",
+            "webhook": "-ABK97nz2L99Ii7UEbruta9Qv"
+        },
+        {
+            "label": "Cama",
+            "icone": "cama_on.svg",
+            "webhook": "-XWBgJ0fL2a3Qi1jDCOXSUccU"
+        },
+        {
+            "label": "Banheiro Suíte",
+            "icone": "banheiro_on.svg",
+            "webhook": "-xX0MHHD3C5EWUCLZVDd-pN6x"
+        },
+        {
+            "label": "Luz Noturna",
+            "icone": "luz_on.svg",
+            "webhook": "-ZNDib6M8xbHnRgpwpELIINvl"
+        }
+    ],
+    "Dispositivos": [
+        {
+            "label": "Ar-condiconado",
+            "icone": "ar_on.svg",
+            "webhook": "-B5-obF5Y6y6wbXDwcmq6P8gM"
+        },
+        {
+            "label": "Projetor",
+            "icone": "projetor_on.svg",
+            "webhook": "-oLWNzYt_bn3GE3GieCd50F6h"
+        },
+        {
+            "label": "USB Ipad Quarto",
+            "icone": "usb_on.svg",
+            "webhook": "-AdcXN-BIm93zq9D2bzuhR-9n"
+        }
+    ],
+    "Cenas": [
+        {
+            "label": "Luzes Vermelhas",
+            "icone": "luzes_vermelhas_on.svg",
+            "webhook": "-pKBlAuGBMXwVLP6QE_5PmKPU"
+        }
+    ]
+}
 
 # ─── DATA, HORA E FERIADOS ─────────────────────────────────────────────────
 now       = datetime.now()
@@ -93,7 +140,7 @@ if events:
 else:
     compromissos = "Nenhum"
 
-# ─── GERA HTML FINAL (correção aplicada) ─────────────────────────────
+# ─── GERA HTML FINAL ──────────────────────────────────────────────────────
 html = r'''<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
