@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import csv
 import requests
@@ -15,16 +16,16 @@ CAL_ID     = os.getenv("CALENDAR_ID")
 CREDS_JSON = os.getenv("GOOGLE_CREDENTIALS")
 NABU_BASE  = os.getenv("NABU_URL").rstrip("/")
 
-# ─── LÊ A PLANILHA DE BOTÕES (CSV LATIN-1) ─────────────────────────────────
+# ─── LEITURA DA PLANILHA CSV (latin-1) ─────────────────────────────────────
 buttons = {}
 with open("planilha_quarto.csv", encoding="latin-1", newline="") as f:
     reader = csv.DictReader(f)
     for row in reader:
-        sec = row["seção"].strip()  # deve ser exatamente "Luzes", "Dispositivos" ou "Cenas"
+        sec = row["seção"].strip()  # "Luzes", "Dispositivos" ou "Cenas"
         buttons.setdefault(sec, []).append({
             "label":   row["label"].strip(),
-            "icone":   row["icone"].strip(),   # ex: luz_quarto.svg
-            "webhook": row["webhook"].strip()  # ex: WEBHOOK_QUARTO
+            "icone":   row["icone"].strip(),
+            "webhook": row["webhook"].strip()
         })
 
 # ─── DATA, HORA E FERIADOS ─────────────────────────────────────────────────
@@ -33,21 +34,21 @@ data_hora = now.strftime("%d/%m/%Y %H:%M")
 br        = holidays.Brazil(prov="SP")
 feriado   = br.get(now.date()) or "Nenhum"
 
-# ─── CLIMA DO QUARTO ───────────────────────────────────────────────────────
+# ─── TEMPERATURA & UMIDADE DO QUARTO ──────────────────────────────────────
 try:
     resp = requests.get(
         f"{HA_URL}/api/states/climate.quarto",
         headers={"Authorization": f"Bearer {HA_TOKEN}"}, timeout=10
     ).json()
-    temp = resp.get("attributes", {}).get("current_temperature", "—")
-    hum  = resp.get("attributes", {}).get("current_humidity", "—")
-    quarto_text = f"{temp}°C / {hum}%"
+    t = resp.get("attributes", {}).get("current_temperature", "—")
+    h = resp.get("attributes", {}).get("current_humidity", "—")
+    quarto_text = f"{t}°C / {h}%"
 except:
     quarto_text = "Indisponível"
 
 # ─── VELOCIDADE DE INTERNET ────────────────────────────────────────────────
 try:
-    st   = speedtest.Speedtest()
+    st = speedtest.Speedtest()
     st.get_best_server()
     down = int(st.download() / 1_000_000)
     up   = int(st.upload() / 1_000_000)
@@ -57,11 +58,11 @@ except:
 
 # ─── FILTRO DO AR-CONDICIONADO ─────────────────────────────────────────────
 try:
-    fr = requests.get(
+    state = requests.get(
         f"{HA_URL}/api/states/binary_sensor.quarto_filter_clean_required",
         headers={"Authorization": f"Bearer {HA_TOKEN}"}, timeout=5
     ).json().get("state", "off")
-    limpeza_text = "Necessário" if fr == "on" else "OK"
+    limpeza_text = "Necessário" if state == "on" else "OK"
 except:
     limpeza_text = "—"
 
@@ -69,7 +70,6 @@ except:
 bandeira_text = fetch_bandeira()
 
 # ─── AGENDA VIA GOOGLE CALENDAR ────────────────────────────────────────────
-# Grava temporariamente credenciais e inicializa o client
 with open("service_account.json", "w", encoding="utf-8") as f:
     f.write(CREDS_JSON)
 creds = Credentials.from_service_account_file(
@@ -79,7 +79,7 @@ creds = Credentials.from_service_account_file(
 service = build("calendar", "v3", credentials=creds)
 
 start = now.isoformat() + "Z"
-end   = datetime(now.year, now.month, now.day, 23,59,59).isoformat() + "Z"
+end   = datetime(now.year, now.month, now.day, 23, 59, 59).isoformat() + "Z"
 events = service.events().list(
     calendarId=CAL_ID, timeMin=start, timeMax=end,
     singleEvents=True, orderBy="startTime"
@@ -93,7 +93,7 @@ if events:
 else:
     compromissos = "Nenhum"
 
-# ─── HTML FINAL (f-string sem backslashes) ──────────────────────────────────
+# ─── GERA HTML FINAL (sem backslashes em f-strings) ────────────────────────
 html = f'''<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -125,10 +125,10 @@ html = f'''<!DOCTYPE html>
       <h3>Luzes</h3>
       <div class="grid">
         {''.join(
-            f'<div class="btn" onclick="toggle(\'{btn["webhook"]}\')'>  \
-            f'<img src="assets/icones/{btn["icone"]}" alt><br>'      \
-            f'{btn["label"]}</div>'
-            for btn in buttons.get("Luzes", [])
+            f'<div class="btn" onclick="toggle(\'{b["webhook"]}\')">'
+            f'<img src="assets/icones/{b["icone"]}"><br>'
+            f'{b["label"]}</div>'
+            for b in buttons.get("Luzes", [])
         )}
       </div>
     </div>
@@ -138,10 +138,10 @@ html = f'''<!DOCTYPE html>
       <h3>Dispositivos</h3>
       <div class="grid">
         {''.join(
-            f'<div class="btn" onclick="toggle(\'{btn["webhook"]}\')'>  \
-            f'<img src="assets/icones/{btn["icone"]}" alt><br>'      \
-            f'{btn["label"]}</div>'
-            for btn in buttons.get("Dispositivos", [])
+            f'<div class="btn" onclick="toggle(\'{b["webhook"]}\')">'
+            f'<img src="assets/icones/{b["icone"]}"><br>'
+            f'{b["label"]}</div>'
+            for b in buttons.get("Dispositivos", [])
         )}
       </div>
     </div>
@@ -151,10 +151,10 @@ html = f'''<!DOCTYPE html>
       <h3>Cenas</h3>
       <div class="grid">
         {''.join(
-            f'<div class="btn" onclick="toggle(\'{btn["webhook"]}\')'>  \
-            f'<img src="assets/icones/{btn["icone"]}" alt><br>'      \
-            f'{btn["label"]}</div>'
-            for btn in buttons.get("Cenas", [])
+            f'<div class="btn" onclick="toggle(\'{b["webhook"]}\')">'
+            f'<img src="assets/icones/{b["icone"]}"><br>'
+            f'{b["label"]}</div>'
+            for b in buttons.get("Cenas", [])
         )}
       </div>
     </div>
@@ -162,12 +162,12 @@ html = f'''<!DOCTYPE html>
     <!-- AGENDA -->
     <div class="section">
       <h3>Agenda</h3>
-      <p id="dh">Data/Hora inválida</p>
+      <p id="dh">Carregando…</p>
       <p>Feriado: {feriado}</p>
       <p>Compromissos:<br>{compromissos}</p>
     </div>
 
-    <!-- TEMPO (externo) -->
+    <!-- TEMPO -->
     <div class="section">
       <h3>Tempo</h3>
       <p>☁️ {requests.get("https://wttr.in/Sao+Paulo?format=%c+%C+%t+Humidity+%h&lang=pt&m").text}</p>
@@ -186,6 +186,5 @@ html = f'''<!DOCTYPE html>
 </body>
 </html>'''
 
-# ─── GRAVA index.html NA RAIZ PARA O workflow movê‑lo ao docs/ ───────────────
 with open("index.html", "w", encoding="utf-8") as f:
     f.write(html)
