@@ -16,23 +16,23 @@ GOOGLE_CREDS = os.getenv("GOOGLE_CREDENTIALS")
 
 # ─── BOTÕES (substitua pelos seus labels, entity_ids e nome do arquivo de ícone) ──
 BUTTONS_LIGHTS = [
-    ("Quarto",           "light.sonoff_1000ea5c7af",      "luz.svg"),
-    ("Abajur 1",         "light.sonoff_1000ec2a21",      "abajur.svg"),
-    ("Abajur 2",         "light.sonoff_1000ef8557",      "abajur.svg"),
-    ("Cama",             "light.sonoff_1000e52367",      "cama.svg"),
-    ("Banheiro Suite",   "light.sonoff_1000e5465f",      "banheiro.svg"),
+    ("Quarto",           "light.sonoff_1000ea5c7af",      "luz_0n.svg"),
+    ("Abajur 1",         "light.sonoff_1000ec2a21",      "abajur_on.svg"),
+    ("Abajur 2",         "light.sonoff_1000ef8557",      "abajur_on.svg"),
+    ("Cama",             "light.sonoff_1000e52367",      "cama_on.svg"),
+    ("Banheiro Suite",   "light.sonoff_1000e5465f",      "banheiro_on.svg"),
 ]
 
 BUTTONS_DEVICES = [
-    ("Ar‑condicionado",  "climate.quarto",               "ar.svg"),
-    ("Projetor",         "switch.sonoff_1000bdffc5",     "projetor.svg"),
-    ("iPad",             "switch.sonoff_1000ef1234",     "ipad.svg"),
+    ("Ar‑condicionado",  "climate.quarto",               "ar_on.svg"),
+    ("Projetor",         "switch.sonoff_1000bdffc5",     "usb_on.svg"),
+    ("iPad",             "switch.sonoff_1000ef1234",     "usb_on.svg"),
 ]
 
 BUTTONS_SCENES = [
-    ("Vermelhas",        "scene.luzes_vermelhas",        "vermelhas.svg"),
+    ("Vermelhas",        "scene.luzes_vermelhas",        "vermelhas_vermelhas.svg"),
     ("Grafite",          "scene.luzes_grafite",          "grafite.svg"),
-    ("Aconchegante",     "scene.luzes_aconchegantes",    "aconchegante.svg"),
+    ("zzZZzz",     "scene.luzes_aconchegantes",    "aconchegante.svg"),
     ("Banheiro",         "scene.luzes_banheiro",         "banheiro.svg"),
 ]
 
@@ -129,18 +129,66 @@ html = f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Painel Quarto — {data_hoje} {hora_hoje}</title>
+  <title>Painel Quarto</title>
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <style>
-    body {{margin:0;background:#000;color:#0f0;font-family:'VT323',monospace;}}
-    .outer {{border:2px solid #0f0;max-width:700px;margin:10px auto;padding:10px;}}
-    .section {{border:1px solid #0f0;margin-top:10px;padding:10px;}}
-    .section h3 {{margin:0 0 5px;text-transform:uppercase;border-bottom:1px dashed #0f0;padding-bottom:5px;}}
-    .grid {{display:flex;flex-wrap:wrap;gap:8px;}}
-    button {{background:#000;border:1px solid #0f0;color:#0f0;padding:8px;cursor:pointer;}}
+    body {{
+      margin:0;
+      background:#000;
+      color:#0f0;
+      font-family:'VT323',monospace;
+      display: flex;
+      justify-content: center;
+      }}
+    .outer {{
+      border:2px solid #39FF14;  /* borda externa */
+      max-width:700px;
+      margin:10px auto;
+      padding:10px;
+      box-sizing: border-box;
+      background: #111;
+      }}
+    .section {{
+      border:1px solid #39FF14; /* bordas das seções */
+      margin-top:10px;
+      padding:10px;
+      }}
+    .section h3 {{
+      margin:0 0 10px;
+      text-transform:uppercase;
+      font-size: 1em;
+      letter-spacing: 1px;
+      border-bottom: 1px dashed #39FF14; /* título da seção */
+      padding-bottom: 5px;
+      opacity: 0.8;
+      }}
+    .grid {{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      }}
+    button {{
+      background: #222;
+      border: 1px solid #39FF14; /* borda dos botões */
+      border-radius: 5px;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.1s, background 0.2s;
+      }}
     button img {{width:24px;height:24px;display:block;margin:0 auto 4px;filter:invert(100%);}}
-    button span {{font-size:0.75em;display:block;text-align:center;}}
-    .info p {{margin:4px 0;}}
+     .btn span {{
+      font-size: 0.75em; 
+      color: #0f0; 
+      font-weight: bold;
+      margin-top: -3px;
+    .info p {{
+      margin:4px 0;
+      }}
   </style>
 </head>
 <body>
