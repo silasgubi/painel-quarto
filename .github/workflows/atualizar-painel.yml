@@ -1,17 +1,23 @@
 name: Atualizar Painel REST do Quarto
 
+# Permissões para o GITHUB_TOKEN dar push no branch
+permissions:
+  contents: write
+
 on:
   schedule:
-    - cron: '0 0 * * *'  # Executa diariamente à meia-noite
-  workflow_dispatch:  # Permite execução manual via interface do GitHub
+    - cron: '0 * * * *'   # a cada hora no minuto zero
+  workflow_dispatch:
 
 jobs:
-  atualizar-painel:
+  build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout do código
+      - name: Checkout repository
         uses: actions/checkout@v3
+        with:
+          persist-credentials: true
 
       - name: Configurar Python
         uses: actions/setup-python@v4
@@ -20,8 +26,25 @@ jobs:
 
       - name: Instalar dependências
         run: |
-          python -m pip install --upgrade pip
-          pip install requests tenacity
+          pip install requests speedtest-cli holidays google-api-python-client google-auth
 
-      - name: Executar script
-        run: python bandeira.py
+      - name: Rodar script e gerar painel
+        env:
+          HA_URL: ${{ secrets.HA_URL }}
+          HA_TOKEN: ${{ secrets.HA_TOKEN }}
+          CALENDAR_ID: ${{ secrets.CALENDAR_ID }}
+          GOOGLE_CREDENTIALS: ${{ secrets.GOOGLE_CREDENTIALS }}
+        run: python get_painel_quarto.py
+
+      - name: Mover índice para pasta docs para GitHub Pages
+        run: |
+          mkdir -p docs
+          mv index.html docs/index.html
+
+      - name: Commit e Push
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add docs/index.html
+          git commit -m "Atualização automática do painel" || echo "Nada para commitar"
+          git push
