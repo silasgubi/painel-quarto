@@ -171,7 +171,7 @@ html = f"""<!DOCTYPE html>
     </div>
     <div class="section">
       <h3>Tempo</h3>
-      <p>{requests.get("https://wttr.in/Sao+Paulo?format=%l+|%c|%C|🌡️%t|💧%h|🌬️%w|💦%p&lang=pt&m").text}</p>
+      <p>{requests.get("https://wttr.in/Sao+Paulo?format=%l|%c|%C|🌡️%t|💧%h|🌬️%w|💦%p&lang=pt&m").text}</p>
     </div>
     <div class="section">
       <h3>Sistema</h3>
