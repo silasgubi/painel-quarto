@@ -180,7 +180,12 @@ html = f"""<!DOCTYPE html>
       cursor: pointer;
       transition: transform 0.1s, background 0.2s;
       }}
-    button img {{width:24px;height:24px;display:block;margin:0 auto 4px;filter:invert(100%);}}
+    button img {{width:24px;
+      height:24px;
+      display:block;
+      margin:0 auto 4px;
+      filter:invert(100%);
+    }}
      .btn span {{
       font-size: 0.75em; 
       color: #0f0; 
@@ -192,6 +197,8 @@ html = f"""<!DOCTYPE html>
   </style>
 </head>
 <body>
+
+  <!-- SEÇÃO LUZES -->
   <div class="outer">
     <div class="section">
       <h3>Luzes</h3>
@@ -199,28 +206,38 @@ html = f"""<!DOCTYPE html>
         {render_buttons(BUTTONS_LIGHTS)}
       </div>
     </div>
+
+    <!-- SEÇÃO DISPOSITIVOS -->
     <div class="section">
       <h3>Dispositivos</h3>
       <div class="grid">
         {render_buttons(BUTTONS_DEVICES)}
       </div>
     </div>
+
+    <!-- SEÇÃO CENAS -->
     <div class="section">
       <h3>Cenas</h3>
       <div class="grid">
         {render_buttons(BUTTONS_SCENES)}
       </div>
     </div>
+
+    <!-- SEÇÃO AGENDA -->
     <div class="section" id="agenda">
       <h3>Agenda</h3>
       <p>Data/Hora: <span id="dt">{data_hoje} {hora_hoje}</span></p>
       <p>Feriado: {feriado_text}</p>
       <p>Compromissos:<br>{compromissos}</p>
     </div>
+
+    <!-- SEÇÃO TEMPO -->
     <div class="section">
       <h3>Tempo</h3>
       <p>{requests.get("https://wttr.in/Sao+Paulo?format=%l|%c|%C|🌡️%t|💧%h|🌬️%w|💦%p&lang=pt&m").text}</p>
     </div>
+
+    <!-- SEÇÃO SISTEMA -->
     <div class="section">
       <h3>Sistema</h3>
       <div class="info">
