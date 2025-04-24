@@ -53,7 +53,12 @@
       cursor: pointer;
       transition: transform 0.1s, background 0.2s;
       }
-    button img {width:24px;height:24px;display:block;margin:0 auto 4px;filter:invert(100%);}
+    button img {width:24px;
+      height:24px;
+      display:block;
+      margin:0 auto 4px;
+      filter:invert(100%);
+    }
      .btn span {
       font-size: 0.75em; 
       color: #0f0; 
@@ -65,6 +70,8 @@
   </style>
 </head>
 <body>
+
+  <!-- SEÇÃO LUZES -->
   <div class="outer">
     <div class="section">
       <h3>Luzes</h3>
@@ -76,6 +83,8 @@
 <button onclick="toggleEntity('light.sonoff_1000e5465f')"><img src="assets/icones/banheiro_on.svg" alt="Banheiro Suite"><span>Banheiro Suite</span></button>
       </div>
     </div>
+
+    <!-- SEÇÃO DISPOSITIVOS -->
     <div class="section">
       <h3>Dispositivos</h3>
       <div class="grid">
@@ -84,6 +93,8 @@
 <button onclick="toggleEntity('switch.sonoff_1000ef1234')"><img src="assets/icones/usb_on.svg" alt="iPad"><span>iPad</span></button>
       </div>
     </div>
+
+    <!-- SEÇÃO CENAS -->
     <div class="section">
       <h3>Cenas</h3>
       <div class="grid">
@@ -93,22 +104,28 @@
 <button onclick="toggleEntity('scene.luzes_banheiro')"><img src="assets/icones/banheiro.svg" alt="Banheiro"><span>Banheiro</span></button>
       </div>
     </div>
+
+    <!-- SEÇÃO AGENDA -->
     <div class="section" id="agenda">
       <h3>Agenda</h3>
-      <p>Data/Hora: <span id="dt">24/04/2025 13:50</span></p>
+      <p>Data/Hora: <span id="dt">24/04/2025 14:40</span></p>
       <p>Feriado: Nenhum</p>
-      <p>Compromissos:<br>09:15 – Silvana Ginástica Palmeiras </p>
+      <p>Compromissos:<br>Nenhum</p>
     </div>
+
+    <!-- SEÇÃO TEMPO -->
     <div class="section">
       <h3>Tempo</h3>
-      <p>Sao+Paulo|☁️  |Encoberto|🌡️+19°C|💧88%|🌬️↙5km/h|💦0.0mm</p>
+      <p>Sao+Paulo|⛅️ |Parcialmente nublado|🌡️+24°C|💧65%|🌬️↘8km/h|💦0.0mm</p>
     </div>
+
+    <!-- SEÇÃO SISTEMA -->
     <div class="section">
       <h3>Sistema</h3>
       <div class="info">
         <p>⚡Bandeira Tarifária⚡: Verde</p>
-        <p>🚀Velocidade da Internet🚀: 1944 ↓ / 1677 ↑</p>
-        <p>❄️Climatização do Quarto💨: 23°C / 77.5%</p>
+        <p>🚀Velocidade da Internet🚀: 2017 ↓ / 1672 ↑</p>
+        <p>❄️Climatização do Quarto💨: 24.6°C / 76.6%</p>
         <p>🧽Limpeza dos Filtros do Ar‑condicionado🧽: ✅</p>
       </div>
     </div>
