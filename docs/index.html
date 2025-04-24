@@ -2,18 +2,66 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Painel Quarto — 24/04/2025 13:36</title>
+  <title>Painel Quarto</title>
   <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
   <style>
-    body {margin:0;background:#000;color:#0f0;font-family:'VT323',monospace;}
-    .outer {border:2px solid #0f0;max-width:700px;margin:10px auto;padding:10px;}
-    .section {border:1px solid #0f0;margin-top:10px;padding:10px;}
-    .section h3 {margin:0 0 5px;text-transform:uppercase;border-bottom:1px dashed #0f0;padding-bottom:5px;}
-    .grid {display:flex;flex-wrap:wrap;gap:8px;}
-    button {background:#000;border:1px solid #0f0;color:#0f0;padding:8px;cursor:pointer;}
+    body {
+      margin:0;
+      background:#000;
+      color:#0f0;
+      font-family:'VT323',monospace;
+      display: flex;
+      justify-content: center;
+      }
+    .outer {
+      border:2px solid #39FF14;  /* borda externa */
+      max-width:700px;
+      margin:10px auto;
+      padding:10px;
+      box-sizing: border-box;
+      background: #111;
+      }
+    .section {
+      border:1px solid #39FF14; /* bordas das seções */
+      margin-top:10px;
+      padding:10px;
+      }
+    .section h3 {
+      margin:0 0 10px;
+      text-transform:uppercase;
+      font-size: 1em;
+      letter-spacing: 1px;
+      border-bottom: 1px dashed #39FF14; /* título da seção */
+      padding-bottom: 5px;
+      opacity: 0.8;
+      }
+    .grid {
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+      }
+    button {
+      background: #222;
+      border: 1px solid #39FF14; /* borda dos botões */
+      border-radius: 5px;
+      width: 60px;
+      height: 60px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: transform 0.1s, background 0.2s;
+      }
     button img {width:24px;height:24px;display:block;margin:0 auto 4px;filter:invert(100%);}
-    button span {font-size:0.75em;display:block;text-align:center;}
-    .info p {margin:4px 0;}
+     .btn span {
+      font-size: 0.75em; 
+      color: #0f0; 
+      font-weight: bold;
+      margin-top: -3px;
+    .info p {
+      margin:4px 0;
+      }
   </style>
 </head>
 <body>
@@ -21,33 +69,33 @@
     <div class="section">
       <h3>Luzes</h3>
       <div class="grid">
-        <button onclick="toggleEntity('light.sonoff_1000ea5c7af')"><img src="assets/icones/luz.svg" alt="Quarto"><span>Quarto</span></button>
-<button onclick="toggleEntity('light.sonoff_1000ec2a21')"><img src="assets/icones/abajur.svg" alt="Abajur 1"><span>Abajur 1</span></button>
-<button onclick="toggleEntity('light.sonoff_1000ef8557')"><img src="assets/icones/abajur.svg" alt="Abajur 2"><span>Abajur 2</span></button>
-<button onclick="toggleEntity('light.sonoff_1000e52367')"><img src="assets/icones/cama.svg" alt="Cama"><span>Cama</span></button>
-<button onclick="toggleEntity('light.sonoff_1000e5465f')"><img src="assets/icones/banheiro.svg" alt="Banheiro Suite"><span>Banheiro Suite</span></button>
+        <button onclick="toggleEntity('light.sonoff_1000ea5c7af')"><img src="assets/icones/luz_0n.svg" alt="Quarto"><span>Quarto</span></button>
+<button onclick="toggleEntity('light.sonoff_1000ec2a21')"><img src="assets/icones/abajur_on.svg" alt="Abajur 1"><span>Abajur 1</span></button>
+<button onclick="toggleEntity('light.sonoff_1000ef8557')"><img src="assets/icones/abajur_on.svg" alt="Abajur 2"><span>Abajur 2</span></button>
+<button onclick="toggleEntity('light.sonoff_1000e52367')"><img src="assets/icones/cama_on.svg" alt="Cama"><span>Cama</span></button>
+<button onclick="toggleEntity('light.sonoff_1000e5465f')"><img src="assets/icones/banheiro_on.svg" alt="Banheiro Suite"><span>Banheiro Suite</span></button>
       </div>
     </div>
     <div class="section">
       <h3>Dispositivos</h3>
       <div class="grid">
-        <button onclick="toggleEntity('climate.quarto')"><img src="assets/icones/ar.svg" alt="Ar‑condicionado"><span>Ar‑condicionado</span></button>
-<button onclick="toggleEntity('switch.sonoff_1000bdffc5')"><img src="assets/icones/projetor.svg" alt="Projetor"><span>Projetor</span></button>
-<button onclick="toggleEntity('switch.sonoff_1000ef1234')"><img src="assets/icones/ipad.svg" alt="iPad"><span>iPad</span></button>
+        <button onclick="toggleEntity('climate.quarto')"><img src="assets/icones/ar_on.svg" alt="Ar‑condicionado"><span>Ar‑condicionado</span></button>
+<button onclick="toggleEntity('switch.sonoff_1000bdffc5')"><img src="assets/icones/usb_on.svg" alt="Projetor"><span>Projetor</span></button>
+<button onclick="toggleEntity('switch.sonoff_1000ef1234')"><img src="assets/icones/usb_on.svg" alt="iPad"><span>iPad</span></button>
       </div>
     </div>
     <div class="section">
       <h3>Cenas</h3>
       <div class="grid">
-        <button onclick="toggleEntity('scene.luzes_vermelhas')"><img src="assets/icones/vermelhas.svg" alt="Vermelhas"><span>Vermelhas</span></button>
+        <button onclick="toggleEntity('scene.luzes_vermelhas')"><img src="assets/icones/vermelhas_vermelhas.svg" alt="Vermelhas"><span>Vermelhas</span></button>
 <button onclick="toggleEntity('scene.luzes_grafite')"><img src="assets/icones/grafite.svg" alt="Grafite"><span>Grafite</span></button>
-<button onclick="toggleEntity('scene.luzes_aconchegantes')"><img src="assets/icones/aconchegante.svg" alt="Aconchegante"><span>Aconchegante</span></button>
+<button onclick="toggleEntity('scene.luzes_aconchegantes')"><img src="assets/icones/aconchegante.svg" alt="zzZZzz"><span>zzZZzz</span></button>
 <button onclick="toggleEntity('scene.luzes_banheiro')"><img src="assets/icones/banheiro.svg" alt="Banheiro"><span>Banheiro</span></button>
       </div>
     </div>
     <div class="section" id="agenda">
       <h3>Agenda</h3>
-      <p>Data/Hora: <span id="dt">24/04/2025 13:36</span></p>
+      <p>Data/Hora: <span id="dt">24/04/2025 13:50</span></p>
       <p>Feriado: Nenhum</p>
       <p>Compromissos:<br>09:15 – Silvana Ginástica Palmeiras </p>
     </div>
@@ -59,8 +107,8 @@
       <h3>Sistema</h3>
       <div class="info">
         <p>⚡Bandeira Tarifária⚡: Verde</p>
-        <p>🚀Velocidade da Internet🚀: 1997 ↓ / 1789 ↑</p>
-        <p>❄️Climatização do Quarto💨: 22.4°C / 73.1%</p>
+        <p>🚀Velocidade da Internet🚀: 1944 ↓ / 1677 ↑</p>
+        <p>❄️Climatização do Quarto💨: 23°C / 77.5%</p>
         <p>🧽Limpeza dos Filtros do Ar‑condicionado🧽: ✅</p>
       </div>
     </div>
