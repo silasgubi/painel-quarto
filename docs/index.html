@@ -1,1 +1,95 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Painel Quarto — 24/04/2025 05:02</title>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <style>
+    body {margin:0;background:#000;color:#0f0;font-family:'VT323',monospace;}
+    .outer {border:2px solid #0f0;max-width:700px;margin:10px auto;padding:10px;}
+    .section {border:1px solid #0f0;margin-top:10px;padding:10px;}
+    .section h3 {margin:0 0 5px;text-transform:uppercase;border-bottom:1px dashed #0f0;padding-bottom:5px;}
+    .grid {display:flex;flex-wrap:wrap;gap:8px;}
+    button {background:#000;border:1px solid #0f0;color:#0f0;padding:8px;cursor:pointer;}
+    button img {width:24px;height:24px;display:block;margin:0 auto 4px;filter:invert(100%);}
+    button span {font-size:0.75em;display:block;text-align:center;}
+    .info p {margin:4px 0;}
+  </style>
+</head>
+<body>
+  <div class="outer">
+    <div class="section">
+      <h3>Luzes</h3>
+      <div class="grid">
+        <button onclick="toggleEntity('light.sonoff_1000ea5c7af')"><img src="assets/icones/luz.svg" alt="Quarto"><span>Quarto</span></button>
+<button onclick="toggleEntity('light.sonoff_1000ec2a21')"><img src="assets/icones/abajur.svg" alt="Abajur 1"><span>Abajur 1</span></button>
+<button onclick="toggleEntity('light.sonoff_1000ef8557')"><img src="assets/icones/abajur.svg" alt="Abajur 2"><span>Abajur 2</span></button>
+<button onclick="toggleEntity('light.sonoff_1000e52367')"><img src="assets/icones/cama.svg" alt="Cama"><span>Cama</span></button>
+<button onclick="toggleEntity('light.sonoff_1000e5465f')"><img src="assets/icones/banheiro.svg" alt="Banheiro Suite"><span>Banheiro Suite</span></button>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Dispositivos</h3>
+      <div class="grid">
+        <button onclick="toggleEntity('climate.quarto')"><img src="assets/icones/ar.svg" alt="Ar‑condicionado"><span>Ar‑condicionado</span></button>
+<button onclick="toggleEntity('switch.sonoff_1000bdffc5')"><img src="assets/icones/projetor.svg" alt="Projetor"><span>Projetor</span></button>
+<button onclick="toggleEntity('switch.sonoff_1000ef1234')"><img src="assets/icones/ipad.svg" alt="iPad"><span>iPad</span></button>
+      </div>
+    </div>
+    <div class="section">
+      <h3>Cenas</h3>
+      <div class="grid">
+        <button onclick="toggleEntity('scene.luzes_vermelhas')"><img src="assets/icones/vermelhas.svg" alt="Vermelhas"><span>Vermelhas</span></button>
+<button onclick="toggleEntity('scene.luzes_grafite')"><img src="assets/icones/grafite.svg" alt="Grafite"><span>Grafite</span></button>
+<button onclick="toggleEntity('scene.luzes_aconchegantes')"><img src="assets/icones/aconchegante.svg" alt="Aconchegante"><span>Aconchegante</span></button>
+<button onclick="toggleEntity('scene.luzes_banheiro')"><img src="assets/icones/banheiro.svg" alt="Banheiro"><span>Banheiro</span></button>
+      </div>
+    </div>
+    <div class="section" id="agenda">
+      <h3>Agenda</h3>
+      <p>Data/Hora: <span id="dt">24/04/2025 05:02</span></p>
+      <p>Feriado: Nenhum</p>
+      <p>Compromissos:<br>09:15 – Silvana Ginástica Palmeiras </p>
+    </div>
+    <div class="section">
+      <h3>Tempo</h3>
+      <p>☁️   Encoberto +19°C Humidity 88%</p>
+    </div>
+    <div class="section">
+      <h3>Sistema</h3>
+      <div class="info">
+        <p>Velocidade da Internet: —</p>
+        <p>Limpeza dos Filtros do Ar‑condicionado: OK</p>
+        <p>⚠ Bandeira Tarifária: Verde</p>
+        <p>Quarto: heat_cool°C / 52.9%</p>
+      </div>
+    </div>
+  </div>
 
+  <script>
+    const HA_URL   = "https://tpplz8oygoqmaagdruizwe214e6bl6cs.ui.nabu.casa";
+    const HA_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhZTJiMTQyODk1OWY0MzIxOTQ0ZDllYTU2YjkyZDIxYiIsImlhdCI6MTc0NTI0MjIyMSwiZXhwIjoyMDYwNjAyMjIxfQ.6CzMrvzVGlq7daV3XeXXfkkeP-v_laoW8tf0haa-Ebo";
+
+    function toggleEntity(entity) {
+      fetch(`${HA_URL}/api/services/homeassistant/toggle`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${HA_TOKEN}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({entity_id: entity})
+      });
+    }
+
+    function atualizaDateTime() {
+      const now = new Date();
+      const dt  = now.toLocaleDateString("pt-BR",{day:"2-digit",month:"2-digit",year:"numeric"}) 
+                  + " " 
+                  + now.toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
+      document.getElementById("dt").innerText = dt;
+    }
+    setInterval(atualizaDateTime,60000);
+    document.addEventListener("DOMContentLoaded",atualizaDateTime);
+  </script>
+</body>
+</html>
