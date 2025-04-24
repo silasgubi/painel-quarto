@@ -55,7 +55,7 @@ def get_clima_quarto():
             },
             timeout=5
         ).json()
-        t = resp.get("state", "—")
+        t = resp.get("attributes", {}).get("current_temperature", "—")
         h = resp.get("attributes", {}).get("current_humidity", "—")
         return f"{t}°C / {h}%"
     except:
@@ -85,7 +85,7 @@ def get_limpeza():
             },
             timeout=5
         ).json()
-        return "Necessário" if resp.get("state")=="on" else "OK"
+        return "❌ ☣️" if resp.get("state")=="on" else "✅"
     except:
         return "—"
 limpeza_text = get_limpeza()
@@ -171,15 +171,15 @@ html = f"""<!DOCTYPE html>
     </div>
     <div class="section">
       <h3>Tempo</h3>
-      <p>{requests.get("https://wttr.in/Sao+Paulo?format=%c+%C+%t+Humidity+%h&lang=pt&m").text}</p>
+      <p>São Paulo: {requests.get("https://wttr.in/Sao+Paulo?format=%c+%C+%t+Humidity+%h&lang=pt&m").text}</p>
     </div>
     <div class="section">
       <h3>Sistema</h3>
       <div class="info">
-        <p>Velocidade da Internet: {internet_text}</p>
-        <p>Limpeza dos Filtros do Ar‑condicionado: {limpeza_text}</p>
-        <p>⚠ Bandeira Tarifária: {bandeira_text}</p>
-        <p>Quarto: {clima_quarto}</p>
+        <p>⚡Bandeira Tarifária⚡: {bandeira_text}</p>
+        <p>🚀Velocidade da Internet🚀: {internet_text}</p>
+        <p>❄️Climatização do Quarto💨: {clima_quarto}</p>
+        <p>🧽Limpeza dos Filtros do Ar‑condicionado🧽: {limpeza_text}</p>
       </div>
     </div>
   </div>
