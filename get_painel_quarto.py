@@ -27,7 +27,7 @@ BUTTONS_LIGHTS = [
 BUTTONS_DEVICES = [
     ("Ar", "-B5-obF5Y6y6wbXDwcmq6P8gM", "ar_on.svg"),
     ("Projetor", "-oLWNzYt_bn3GE3GieCd50F6h", "usb_on.svg"),
-    ("iPad","-AdcXN-BIm93zq9D2bzuhR-9n", "usb_on.svg"),
+    ("iPad", "-AdcXN-BIm93zq9D2bzuhR-9n", "usb_on.svg"),
 ]
 
 BUTTONS_SCENES = [
