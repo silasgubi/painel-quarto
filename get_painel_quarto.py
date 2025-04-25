@@ -25,13 +25,13 @@ BUTTONS_LIGHTS = [
 ]
 
 BUTTONS_DEVICES = [
-    ("Ar","-B5-obF5Y6y6wbXDwcmq6P8gM""ar_on.svg"),
+    ("Ar","-B5-obF5Y6y6wbXDwcmq6P8gM","ar_on.svg"),
     ("Projetor","-oLWNzYt_bn3GE3GieCd50F6h","usb_on.svg"),
-    ("iPad""-AdcXN-BIm93zq9D2bzuhR-9n","usb_on.svg"),
+    ("iPad","-AdcXN-BIm93zq9D2bzuhR-9n","usb_on.svg"),
 ]
 
 BUTTONS_SCENES = [
-    ("Luzes .🔴""-pKBlAuGBMXwVLP6QE_5PmKPU","vermelhas_vermelhas.svg"),
+    ("Luzes .🔴","-pKBlAuGBMXwVLP6QE_5PmKPU","vermelhas_vermelhas.svg"),
     ("Luzes WC 🔴","-3CZoHv9fEijfqTvITtB-Y-yc","banheiro.svg"),
 ]
 
@@ -121,7 +121,7 @@ def render_buttons(lst):
         f"<button onclick=\"callWebhook('{webhook_id}')\">"
         f"<img src=\"assets/icones/{icon}\" alt=\"{label}\"><span>{label}</span>"
         "</button>"
-        for label, webhook_id, icon in lst
+        for label,webhook_id,icon in lst
     )
 
 html = f"""<!DOCTYPE html>
