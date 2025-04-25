@@ -14,25 +14,25 @@ HA_TOKEN     = os.getenv("HA_TOKEN")
 CALENDAR_ID  = os.getenv("CALENDAR_ID")
 GOOGLE_CREDS = os.getenv("GOOGLE_CREDENTIALS")
 
-# ─── BOTÕES (substitua pelos seus labels, entity_ids e nome do arquivo de ícone) ──
+# ─── BOTÕES (substitua pelos seus labels, webhooks e nome do arquivo de ícone) ──
 BUTTONS_LIGHTS = [
-    ("Quarto",           "-CypOVrETUPzU3j597Zv_Zt5A",      "luz_0n.svg"),
-    ("Abajur 1",         "-MFVOA3AtnRp1jXwKo1OC9OHG",      "abajur_on.svg"),
-    ("Abajur 2",         "-ABK97nz2L99Ii7UEbruta9Qv",      "abajur_on.svg"),
-    ("Cama",             "-XWBgJ0fL2a3Qi1jDCOXSUccU",      "cama_on.svg"),
-    ("WC Suite",         "xX0MHHD3C5EWUCLZVDd-pN6x",       "banheiro_on.svg"),
-    ("Luz Noite",        "-ZNDib6M8xbHnRgpwpELIINvl",      "luz_0n.svg"),
+    ("Quarto","-CypOVrETUPzU3j597Zv_Zt5A","luz_0n.svg"),
+    ("Abajur 1","-MFVOA3AtnRp1jXwKo1OC9OHG","abajur_on.svg"),
+    ("Abajur 2","-ABK97nz2L99Ii7UEbruta9Qv","abajur_on.svg"),
+    ("Cama","-XWBgJ0fL2a3Qi1jDCOXSUccU","cama_on.svg"),
+    ("WC Suite","xX0MHHD3C5EWUCLZVDd-pN6x","banheiro_on.svg"),
+    ("Luz Noite","-ZNDib6M8xbHnRgpwpELIINvl","luz_0n.svg"),
 ]
 
 BUTTONS_DEVICES = [
-    ("Ar",               "-B5-obF5Y6y6wbXDwcmq6P8gM",       "ar_on.svg"),
-    ("Projetor",         "-oLWNzYt_bn3GE3GieCd50F6h",       "usb_on.svg"),
-    ("iPad",             "-AdcXN-BIm93zq9D2bzuhR-9n",       "usb_on.svg"),
+    ("Ar","-B5-obF5Y6y6wbXDwcmq6P8gM""ar_on.svg"),
+    ("Projetor","-oLWNzYt_bn3GE3GieCd50F6h","usb_on.svg"),
+    ("iPad""-AdcXN-BIm93zq9D2bzuhR-9n","usb_on.svg"),
 ]
 
 BUTTONS_SCENES = [
-    ("Luzes .🔴",        "-pKBlAuGBMXwVLP6QE_5PmKPU",        "vermelhas_vermelhas.svg"),
-    ("Luzes WC 🔴",      "-3CZoHv9fEijfqTvITtB-Y-yc",         "banheiro.svg"),
+    ("Luzes .🔴""-pKBlAuGBMXwVLP6QE_5PmKPU","vermelhas_vermelhas.svg"),
+    ("Luzes WC 🔴","-3CZoHv9fEijfqTvITtB-Y-yc","banheiro.svg"),
 ]
 
 # ─── DADOS DINÂMICOS ────────────────────────────────────────────────────────
@@ -121,7 +121,7 @@ def render_buttons(lst):
         f"<button onclick=\"callWebhook('{webhook_id}')\">"
         f"<img src=\"assets/icones/{icon}\" alt=\"{label}\"><span>{label}</span>"
         "</button>"
-        for label,eid,icon in lst
+        for label, webhook_id, icon in lst
     )
 
 html = f"""<!DOCTYPE html>
