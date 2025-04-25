@@ -25,14 +25,14 @@ BUTTONS_LIGHTS = [
 ]
 
 BUTTONS_DEVICES = [
-    ("Ar","-B5-obF5Y6y6wbXDwcmq6P8gM","ar_on.svg"),
-    ("Projetor","-oLWNzYt_bn3GE3GieCd50F6h","usb_on.svg"),
-    ("iPad","-AdcXN-BIm93zq9D2bzuhR-9n","usb_on.svg"),
+    ("Ar", "-B5-obF5Y6y6wbXDwcmq6P8gM", "ar_on.svg"),
+    ("Projetor", "-oLWNzYt_bn3GE3GieCd50F6h", "usb_on.svg"),
+    ("iPad","-AdcXN-BIm93zq9D2bzuhR-9n", "usb_on.svg"),
 ]
 
 BUTTONS_SCENES = [
-    ("Luzes .🔴","-pKBlAuGBMXwVLP6QE_5PmKPU","vermelhas_vermelhas.svg"),
-    ("Luzes WC 🔴","-3CZoHv9fEijfqTvITtB-Y-yc","banheiro.svg"),
+    ("Luzes .🔴", "-pKBlAuGBMXwVLP6QE_5PmKPU", "vermelhas_vermelhas.svg"),
+    ("Luzes WC 🔴", "-3CZoHv9fEijfqTvITtB-Y-yc", "banheiro.svg"),
 ]
 
 # ─── DADOS DINÂMICOS ────────────────────────────────────────────────────────
