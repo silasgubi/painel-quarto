@@ -16,24 +16,23 @@ GOOGLE_CREDS = os.getenv("GOOGLE_CREDENTIALS")
 
 # ─── BOTÕES (substitua pelos seus labels, entity_ids e nome do arquivo de ícone) ──
 BUTTONS_LIGHTS = [
-    ("Quarto",           "light.sonoff_1000ea5c7af",      "luz_0n.svg"),
-    ("Abajur 1",         "light.sonoff_1000ec2a21",      "abajur_on.svg"),
-    ("Abajur 2",         "light.sonoff_1000ef8557",      "abajur_on.svg"),
-    ("Cama",             "light.sonoff_1000e52367",      "cama_on.svg"),
-    ("Banheiro Suite",   "light.sonoff_1000e5465f",      "banheiro_on.svg"),
+    ("Quarto",           "-CypOVrETUPzU3j597Zv_Zt5A",      "luz_0n.svg"),
+    ("Abajur 1",         "-MFVOA3AtnRp1jXwKo1OC9OHG",      "abajur_on.svg"),
+    ("Abajur 2",         "-ABK97nz2L99Ii7UEbruta9Qv",      "abajur_on.svg"),
+    ("Cama",             "-XWBgJ0fL2a3Qi1jDCOXSUccU",      "cama_on.svg"),
+    ("WC Suite",         "xX0MHHD3C5EWUCLZVDd-pN6x",       "banheiro_on.svg"),
+    ("Luz Noite",        "-ZNDib6M8xbHnRgpwpELIINvl",      "luz_0n.svg"),
 ]
 
 BUTTONS_DEVICES = [
-    ("Ar",               "climate.quarto",               "ar_on.svg"),
-    ("Projetor",         "switch.sonoff_1000bdffc5",     "usb_on.svg"),
-    ("iPad",             "switch.sonoff_1000ef1234",     "usb_on.svg"),
+    ("Ar",               "-B5-obF5Y6y6wbXDwcmq6P8gM",       "ar_on.svg"),
+    ("Projetor",         "-oLWNzYt_bn3GE3GieCd50F6h",       "usb_on.svg"),
+    ("iPad",             "-AdcXN-BIm93zq9D2bzuhR-9n",       "usb_on.svg"),
 ]
 
 BUTTONS_SCENES = [
-    ("Vermelhas",        "scene.luzes_vermelhas",        "vermelhas_vermelhas.svg"),
-    ("Grafite",          "scene.luzes_grafite",          "grafite.svg"),
-    ("zzZZzz",           "scene.luzes_aconchegantes",    "aconchegante.svg"),
-    ("Banheiro",         "scene.luzes_banheiro",         "banheiro.svg"),
+    ("Luzes .🔴",        "-pKBlAuGBMXwVLP6QE_5PmKPU",        "vermelhas_vermelhas.svg"),
+    ("Luzes WC 🔴",      "-3CZoHv9fEijfqTvITtB-Y-yc",         "banheiro.svg"),
 ]
 
 # ─── DADOS DINÂMICOS ────────────────────────────────────────────────────────
@@ -119,7 +118,7 @@ else:
 # ─── GERAÇÃO DO HTML ────────────────────────────────────────────────────────
 def render_buttons(lst):
     return "\n".join(
-        f"<button onclick=\"toggleEntity('{eid}')\">"
+        f"<button onclick=\"callWebhook('{webhook_id}')\">"
         f"<img src=\"assets/icones/{icon}\" alt=\"{label}\"><span>{label}</span>"
         "</button>"
         for label,eid,icon in lst
@@ -253,15 +252,16 @@ html = f"""<!DOCTYPE html>
     const HA_URL   = "{HA_URL}";
     const HA_TOKEN = "{HA_TOKEN}";
 
-    function toggleEntity(entity) {{
-      fetch(`${{HA_URL}}/api/services/homeassistant/toggle`, {{
+    function callWebhook(webhookId) {{
+      fetch(`${{HA_URL}}/api/webhook/${webhookId}`, {{
         method: "POST",
         headers: {{
-          "Authorization": `Bearer ${{HA_TOKEN}}`,
+          "Authorization": `Bearer ${{HA_TOKEN}}`,  // opcional para webhooks
           "Content-Type": "application/json"
         }},
-        body: JSON.stringify({{entity_id: entity}})
-      }});
+        // se sua automação esperar um payload customizado, inclua em `body`
+        // body: JSON.stringify({{ some_key: "some_value" }})                                             
+        }});
     }}
 
     function atualizaDateTime() {{
