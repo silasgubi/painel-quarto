@@ -24,7 +24,7 @@ BUTTONS_LIGHTS = [
 ]
 
 BUTTONS_DEVICES = [
-    ("Ar‑condicionado",  "climate.quarto",               "ar_on.svg"),
+    ("Ar",               "climate.quarto",               "ar_on.svg"),
     ("Projetor",         "switch.sonoff_1000bdffc5",     "usb_on.svg"),
     ("iPad",             "switch.sonoff_1000ef1234",     "usb_on.svg"),
 ]
@@ -32,7 +32,7 @@ BUTTONS_DEVICES = [
 BUTTONS_SCENES = [
     ("Vermelhas",        "scene.luzes_vermelhas",        "vermelhas_vermelhas.svg"),
     ("Grafite",          "scene.luzes_grafite",          "grafite.svg"),
-    ("zzZZzz",     "scene.luzes_aconchegantes",    "aconchegante.svg"),
+    ("zzZZzz",           "scene.luzes_aconchegantes",    "aconchegante.svg"),
     ("Banheiro",         "scene.luzes_banheiro",         "banheiro.svg"),
 ]
 
