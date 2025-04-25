@@ -253,7 +253,7 @@ html = f"""<!DOCTYPE html>
     const HA_TOKEN = "{HA_TOKEN}";
 
     function callWebhook(webhookId) {{
-      fetch(`${{HA_URL}}/api/webhook/${webhookId}`, {{
+      fetch(`${{HA_URL}}/api/webhook/${{webhookId}}`, {{
         method: "POST",
         headers: {{
           "Authorization": `Bearer ${{HA_TOKEN}}`,  // opcional para webhooks
