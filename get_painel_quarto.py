@@ -121,7 +121,7 @@ def render_buttons(lst):
         f"<button onclick=\"callWebhook('{webhook_id}')\">"
         f"<img src=\"assets/icones/{icon}\" alt=\"{label}\"><span>{label}</span>"
         "</button>"
-        for label,webhook_id,icon in lst
+        for label, webhook_id, icon in lst
     )
 
 html = f"""<!DOCTYPE html>
