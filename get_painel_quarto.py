@@ -16,12 +16,12 @@ GOOGLE_CREDS = os.getenv("GOOGLE_CREDENTIALS")
 
 # ─── BOTÕES (substitua pelos seus labels, webhooks e nome do arquivo de ícone) ──
 BUTTONS_LIGHTS = [
-    ("Quarto", "-CypOVrETUPzU3j597Zv_Zt5A", "luz_0n.svg"),
+    ("Quarto", "-CypOVrETUPzU3j597Zv_Zt5A", "luz_on.svg"),
     ("Abajur 1", "-MFVOA3AtnRp1jXwKo1OC9OHG", "abajur_on.svg"),
     ("Abajur 2", "-ABK97nz2L99Ii7UEbruta9Qv", "abajur_on.svg"),
     ("Cama" , "-XWBgJ0fL2a3Qi1jDCOXSUccU", "cama_on.svg"),
     ("WC Suite", "xX0MHHD3C5EWUCLZVDd-pN6x", "banheiro_on.svg"),
-    ("Luz Noite", "-ZNDib6M8xbHnRgpwpELIINvl", "luz_0n.svg"),
+    ("Luz Noite", "-ZNDib6M8xbHnRgpwpELIINvl", "luz_on.svg"),
 ]
 
 BUTTONS_DEVICES = [
@@ -255,13 +255,8 @@ html = f"""<!DOCTYPE html>
     function callWebhook(webhookId) {{
       fetch(`${{HA_URL}}/api/webhook/${{webhookId}}`, {{
         method: "POST",
-        headers: {{
-          "Authorization": `Bearer ${{HA_TOKEN}}`,  // opcional para webhooks
-          "Content-Type": "application/json"
-        }},
-        // se sua automação esperar um payload customizado, inclua em `body`
-        // body: JSON.stringify({{ some_key: "some_value" }})                                             
-        }});
+        mode: "no-cors"   
+      }});
     }}
 
     function atualizaDateTime() {{
