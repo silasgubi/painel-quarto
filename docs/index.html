@@ -76,11 +76,12 @@
     <div class="section">
       <h3>Luzes</h3>
       <div class="grid">
-        <button onclick="toggleEntity('light.sonoff_1000ea5c7af')"><img src="assets/icones/luz_0n.svg" alt="Quarto"><span>Quarto</span></button>
-<button onclick="toggleEntity('light.sonoff_1000ec2a21')"><img src="assets/icones/abajur_on.svg" alt="Abajur 1"><span>Abajur 1</span></button>
-<button onclick="toggleEntity('light.sonoff_1000ef8557')"><img src="assets/icones/abajur_on.svg" alt="Abajur 2"><span>Abajur 2</span></button>
-<button onclick="toggleEntity('light.sonoff_1000e52367')"><img src="assets/icones/cama_on.svg" alt="Cama"><span>Cama</span></button>
-<button onclick="toggleEntity('light.sonoff_1000e5465f')"><img src="assets/icones/banheiro_on.svg" alt="Banheiro Suite"><span>Banheiro Suite</span></button>
+        <button onclick="callWebhook('{webhook_id}')"><img src="assets/icones/luz_0n.svg" alt="Quarto"><span>Quarto</span></button>
+<button onclick="callWebhook('{webhook_id}')"><img src="assets/icones/abajur_on.svg" alt="Abajur 1"><span>Abajur 1</span></button>
+<button onclick="callWebhook('{webhook_id}')"><img src="assets/icones/abajur_on.svg" alt="Abajur 2"><span>Abajur 2</span></button>
+<button onclick="callWebhook('{webhook_id}')"><img src="assets/icones/cama_on.svg" alt="Cama"><span>Cama</span></button>
+<button onclick="callWebhook('{webhook_id}')"><img src="assets/icones/banheiro_on.svg" alt="WC Suite"><span>WC Suite</span></button>
+<button onclick="callWebhook('{webhook_id}')"><img src="assets/icones/luz_0n.svg" alt="Luz Noite"><span>Luz Noite</span></button>
       </div>
     </div>
 
@@ -88,9 +89,9 @@
     <div class="section">
       <h3>Dispositivos</h3>
       <div class="grid">
-        <button onclick="toggleEntity('climate.quarto')"><img src="assets/icones/ar_on.svg" alt="Ar‑condicionado"><span>Ar‑condicionado</span></button>
-<button onclick="toggleEntity('switch.sonoff_1000bdffc5')"><img src="assets/icones/usb_on.svg" alt="Projetor"><span>Projetor</span></button>
-<button onclick="toggleEntity('switch.sonoff_1000ef1234')"><img src="assets/icones/usb_on.svg" alt="iPad"><span>iPad</span></button>
+        <button onclick="callWebhook('{webhook_id}')"><img src="assets/icones/ar_on.svg" alt="Ar"><span>Ar</span></button>
+<button onclick="callWebhook('{webhook_id}')"><img src="assets/icones/usb_on.svg" alt="Projetor"><span>Projetor</span></button>
+<button onclick="callWebhook('{webhook_id}')"><img src="assets/icones/usb_on.svg" alt="iPad"><span>iPad</span></button>
       </div>
     </div>
 
@@ -98,25 +99,23 @@
     <div class="section">
       <h3>Cenas</h3>
       <div class="grid">
-        <button onclick="toggleEntity('scene.luzes_vermelhas')"><img src="assets/icones/vermelhas_vermelhas.svg" alt="Vermelhas"><span>Vermelhas</span></button>
-<button onclick="toggleEntity('scene.luzes_grafite')"><img src="assets/icones/grafite.svg" alt="Grafite"><span>Grafite</span></button>
-<button onclick="toggleEntity('scene.luzes_aconchegantes')"><img src="assets/icones/aconchegante.svg" alt="zzZZzz"><span>zzZZzz</span></button>
-<button onclick="toggleEntity('scene.luzes_banheiro')"><img src="assets/icones/banheiro.svg" alt="Banheiro"><span>Banheiro</span></button>
+        <button onclick="callWebhook('{webhook_id}')"><img src="assets/icones/vermelhas_vermelhas.svg" alt="Luzes .🔴"><span>Luzes .🔴</span></button>
+<button onclick="callWebhook('{webhook_id}')"><img src="assets/icones/banheiro.svg" alt="Luzes WC 🔴"><span>Luzes WC 🔴</span></button>
       </div>
     </div>
 
     <!-- SEÇÃO AGENDA -->
     <div class="section" id="agenda">
       <h3>Agenda</h3>
-      <p>Data/Hora: <span id="dt">24/04/2025 23:29</span></p>
+      <p>Data/Hora: <span id="dt">25/04/2025 03:09</span></p>
       <p>Feriado: Nenhum</p>
-      <p>Compromissos:<br>Nenhum</p>
+      <p>Compromissos:<br>09:10 – Hidroginástica Palmeiras<br>11:20 – Dr Guilherme CEMA</p>
     </div>
 
     <!-- SEÇÃO TEMPO -->
     <div class="section">
       <h3>Tempo</h3>
-      <p>Sao+Paulo|🌫 |Neblina|🌡️+21°C|💧88%|🌬️↖12km/h|💦0.6mm</p>
+      <p>Sao+Paulo|🌦  |Chuva fraca|🌡️+18°C|💧100%|🌬️↙6km/h|💦1.0mm</p>
     </div>
 
     <!-- SEÇÃO SISTEMA -->
@@ -124,8 +123,8 @@
       <h3>Sistema</h3>
       <div class="info">
         <p>⚡Bandeira Tarifária⚡: Verde</p>
-        <p>🚀Velocidade da Internet🚀: 1976 ↓ / 1734 ↑</p>
-        <p>❄️Climatização do Quarto💨: 25.1°C / 77.4%</p>
+        <p>🚀Velocidade da Internet🚀: 1699 ↓ / 676 ↑</p>
+        <p>❄️Climatização do Quarto💨: 22.3°C / 58.5%</p>
         <p>🧽Limpeza dos Filtros do Ar‑condicionado🧽: ✅</p>
       </div>
     </div>
@@ -135,15 +134,16 @@
     const HA_URL   = "https://tpplz8oygoqmaagdruizwe214e6bl6cs.ui.nabu.casa";
     const HA_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhZTJiMTQyODk1OWY0MzIxOTQ0ZDllYTU2YjkyZDIxYiIsImlhdCI6MTc0NTI0MjIyMSwiZXhwIjoyMDYwNjAyMjIxfQ.6CzMrvzVGlq7daV3XeXXfkkeP-v_laoW8tf0haa-Ebo";
 
-    function toggleEntity(entity) {
-      fetch(`${HA_URL}/api/services/homeassistant/toggle`, {
+    function callWebhook(webhookId) {
+      fetch(`${HA_URL}/api/webhook/${webhookId}`, {
         method: "POST",
         headers: {
-          "Authorization": `Bearer ${HA_TOKEN}`,
+          "Authorization": `Bearer ${HA_TOKEN}`,  // opcional para webhooks
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({entity_id: entity})
-      });
+        // se sua automação esperar um payload customizado, inclua em `body`
+        // body: JSON.stringify({ some_key: "some_value" })                                             
+        });
     }
 
     function atualizaDateTime() {
